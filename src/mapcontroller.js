@@ -115,7 +115,6 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	this.normalFinishModes = ["retrievetasters", "normal", "toggleTOC"];
 	
 	this.dodebug = false;
-	
 	this.callSequence = new CallSequence(p_debug_callsequence);
 
 	if ( !(this instanceof arguments.callee) )
@@ -503,8 +502,6 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			cx = pt[0];
 			cy = pt[1];
 
-			this.setCenter(cx, cy);		
-
 			this.callSequence.addMsg("calcMapTransform", _inv, "center coords set from env");
 
 			if (new_env.getWHRatio() > whRatioCanvas) {
@@ -521,6 +518,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			}
 
 			currentTransform.setScaling(k);
+			this.setCenter(cx, cy);		
 
 			hwidth = k * (cdims[0] / 2.0);
 			hheight = k * (cdims[1] / 2.0);
@@ -657,7 +655,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		let deltascrx =  Math.abs(p_start_screen[0] - p_x);
 		let deltascry =  Math.abs(p_start_screen[1] - p_y);
 		
-		console.log("2:"+opt_origin);
+		//console.log(dx, '<', deltascrx, dy, '<', deltascry);
 		
 		if (opt_origin == 'touch') {
 			dx = 6;
@@ -3292,7 +3290,8 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 					if (lname != null)
 					{						
 						// scale visibility limits and raster obfuscation both ok
-						if (this.checkLayerVisibility(lname))
+						const chkLyrViz = this.checkLayerVisibility(lname);
+						if (chkLyrViz)
 						{
 							nchunks = currnumbs[1];
 							nvert = currnumbs[2];
@@ -3306,8 +3305,14 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 								this.fanningChunks.push([nchunks,nvert,pci]);
 								this.pendingChunks.push(pci);
 							}
+
+							this.callSequence.addMsg("_retrieveVectorsFromServer",  _inv, String.format("{0} is visible, fanning chunks: {1}, pending ch: {2}", lname, this.fanningChunks.length,  this.pendingChunks.length));
+
 							break;
 						}
+						
+						this.callSequence.addMsg("_retrieveVectorsFromServer",  _inv, String.format("{0} is NOT visible, fanning chunks: {1}, pending ch: {2}", lname, this.fanningChunks.length,  this.pendingChunks.length));
+						
 					} else {
 						throw new Error("_retrieveFromServer: next current layer name is null");
 					}

@@ -374,6 +374,28 @@ function Envelope2D() {
 		this.maxy = p_center[1];		
 	};
 	
+	this.setAround = function(p_center, p_half_width) {
+		if (p_center === null || typeof p_center != 'object' || p_center.length != 2) 
+			throw new Error(this.msg("INVALIDPT"));
+
+		if (isNaN(p_center[0])) {
+			throw new Error("setNullAround: cy is NaN");
+		}
+
+		if (isNaN(p_center[1])) {
+			throw new Error("setNullAround: cy is NaN");
+		}
+
+		if (p_half_width==null || isNaN(p_half_width)) {
+			throw new Error("setNullAround: p_half_width is null or NaN");
+		}
+		
+		this.minx = p_center[0]-p_half_width;
+		this.miny = p_center[1]-p_half_width;
+		this.maxx = p_center[0]+p_half_width;
+		this.maxy = p_center[1]+p_half_width;		
+	};
+	
 	this.addPoint = function(p_pt) 
 	{
 		if (p_pt[0] < this.minx) {

@@ -34,7 +34,7 @@ function getEvtCoords(p_evt, p_target, out_coords) {
 }
 
 // baseclass intended for extension
-function _Basetool() {
+function _Basetool(p_mapctrl) {
 
 	this.name = '#basetool#';
 	this.actions_per_evttype_per_layer = {};
@@ -43,6 +43,7 @@ function _Basetool() {
 	this.start_terrain = null;
 	this.started = false;
 	this.mouseleave_eq_mouseup = true;
+	this.the_map = p_mapctrl;
 
 	this.getName = function() {
 		return this.name;
@@ -64,6 +65,57 @@ function _Basetool() {
 		this.actions_per_evttype_per_layer[p_evttype][p_layername] = p_callback;		
 	};
 
+	this.mapInteract = function(p_evtname, p_x, p_y, out_obj) {
+		
+		let lname, funcname, lnames = [];
+		
+		out_obj.lnames_per_func = {}, out_obj.findings = {};			
+		for (lname in this.actions_per_evttype_per_layer[p_evtname]) 
+		{
+			if (!this.actions_per_evttype_per_layer[p_evtname].hasOwnProperty(lname)) {
+				continue;
+			}
+			lnames.push(lname);
+		}
+		for (var li=0; li < lnames.length; li++) {
+			lname = lnames[li];
+			if (this.actions_per_evttype_per_layer[p_evtname][lname] !== undefined) {
+				funcname = this.actions_per_evttype_per_layer[p_evtname][lname];
+				if (this.the_map.checkLayerVisibility(lname)) {
+					if (out_obj.lnames_per_func[funcname] === undefined) {
+						out_obj.lnames_per_func[funcname] = [];
+					}
+					out_obj.lnames_per_func[funcname].push(lname);
+					out_obj.findings[lname] = this.the_map.findNearestObject(p_x, p_y, lname);
+				}
+			}
+		}
+		
+	};
+	
+	this.forwardMapAction = function(p_interaction, p_x, p_y) {
+		
+		let obj, meth, splits;
+		
+		for (let funcname in p_interaction.lnames_per_func) {
+			
+			if (!p_interaction.lnames_per_func.hasOwnProperty(funcname)) {
+				continue;
+			}
+			
+			splits = funcname.split('.');
+			try {
+				if (splits.length > 1) {
+					obj = window[splits[0]];
+					obj[splits[1]](this.the_map, p_x, p_y, p_interaction.lnames_per_func[funcname], p_interaction.findings);
+				} else {
+					window[splits[1]](this.the_map, p_x, p_y, p_interaction.lnames_per_func[funcname], p_interaction.findings);
+				}
+			} catch(e) {
+				console.warn(e);
+			}
+		}
+	}
 
 }
 
@@ -167,48 +219,9 @@ function Picker(mouseButtonMask, p_mapctrl)
 	this.mouseup = function(e, target, x, y, null_nobuttons) 
 	{
 		if (this.mousedown_ocurred) {
-			
-			var lname, funcname, lnames = [], lnames_per_func = {}; //, mu_prevcall_state = {};
-			
-			for (lname in this.actions_per_evttype_per_layer['mouseup']) 
-			{
-				if (!this.actions_per_evttype_per_layer['mouseup'].hasOwnProperty(lname)) {
-					continue;
-				}
-				lnames.push(lname);
-			}
-			for (var li=0; li < lnames.length; li++) {
-				lname = lnames[li];
-				funcname = this.actions_per_evttype_per_layer['mouseup'][lname];
-				if (funcname!=null) {
-					if (lnames_per_func[funcname] === undefined) {
-						lnames_per_func[funcname] = [];
-					}
-				}
-				lnames_per_func[funcname].push(lname);
-			}
-
-			let obj, meth, splits;
-			for (funcname in lnames_per_func) {
-				if (!lnames_per_func.hasOwnProperty(funcname)) {
-					continue;
-				}
-				
-				// Check layer viz by scale
-				console.log(lname, "pick", this.the_map.lconfig[lname].scalelimits);
-				
-				splits = funcname.split('.');
-				try {
-					if (splits.length > 1) {
-						obj = window[splits[0]];
-						obj[splits[1]](this.the_map, x, y, lnames_per_func[funcname]);
-					} else {
-						window[splits[1]](this.the_map, x, y, lnames_per_func[funcname]);
-					}
-				} catch(e) {
-					console.warn(e);
-				}
-			}
+			const interaction = {};			
+			this.mapInteract('mouseup', x, y, interaction);
+			this.forwardMapAction(interaction, x, y);
 		}
 		this.mousedown_ocurred = false;
 		// Allow actuation of permanent tool
@@ -217,7 +230,7 @@ function Picker(mouseButtonMask, p_mapctrl)
 
 	this.mousemove = function(e, target, x, y) 
 	{
-		var dx, dy;
+		let dx, dy, evtlbl = "mousemove";
 		if (this.mousedown_ocurred) {
 			dx = Math.abs(this.start_screen[0] - x);
 			dy = Math.abs(this.start_screen[1] - y);
@@ -226,18 +239,10 @@ function Picker(mouseButtonMask, p_mapctrl)
 			}
 		}
 		
-		if (!this.mousedown_ocurred) 
-		{
-			for (var lname in this.actions_per_evttype_per_layer['mousemove']) 
-			{
-				if (!this.actions_per_evttype_per_layer['mousemove'].hasOwnProperty(lname)) {
-					continue;
-				}
-				var funcname = this.actions_per_evttype_per_layer['mousemove'][lname];
-				if (funcname && window[funcname]!== undefined) {
-						window[funcname](this.the_map, x, y, lname);
-				}
-			}
+		if (!this.mousedown_ocurred) {
+			const interaction = {};			
+			this.mapInteract(evtlbl, x, y, interaction);
+			this.forwardMapAction(interaction, x, y);
 		}		
 		// Allow actuation of permanent tool
 		return true;
