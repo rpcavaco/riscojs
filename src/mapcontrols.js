@@ -218,7 +218,7 @@ function Picker(mouseButtonMask, p_mapctrl)
 	
 	this.mouseup = function(e, target, x, y, null_nobuttons) 
 	{
-		if (this.mousedown_ocurred) {
+		if (this.mousedown_ocurred) {			
 			const interaction = {};			
 			this.mapInteract('mouseup', x, y, interaction);
 			this.forwardMapAction(interaction, x, y);
@@ -238,7 +238,7 @@ function Picker(mouseButtonMask, p_mapctrl)
 				this.mousedown_ocurred = false;
 			}
 		}
-		
+
 		if (!this.mousedown_ocurred) {
 			const interaction = {};			
 			this.mapInteract(evtlbl, x, y, interaction);
@@ -725,7 +725,7 @@ function MapControlsMgr(p_the_map) {
 	this.permanenttool = new Pan(MOUSEBTN_MIDDLE | MOUSEBTN_LEFT, this.the_map);
 	this.deftoolname = null;
 
-	this.visibility_widget_name = null;
+	this.legendcfg = null;
 	this.widgetnames_hide_during_refresh = [];
 	this.widgetnames_hide_small_scale = [];
 	
@@ -785,8 +785,8 @@ function MapControlsMgr(p_the_map) {
 				})(this)
 			);
 		}
-		if (p_initconfig["visibility_widget_name"] !== undefined && p_initconfig["visibility_widget_name"] != null) {
-			this.visibility_widget_name = p_initconfig["visibility_widget_name"];
+		if (p_initconfig["legendcfg"] !== undefined && p_initconfig["legendcfg"] != null) {
+			this.legendcfg = p_initconfig["legendcfg"];
 		}
 		if (p_initconfig["widgetnames_hide_during_refresh"] !== undefined && p_initconfig["widgetnames_hide_during_refresh"] != null) {
 			this.widgetnames_hide_during_refresh = p_initconfig["widgetnames_hide_during_refresh"];

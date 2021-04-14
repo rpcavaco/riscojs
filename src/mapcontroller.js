@@ -192,7 +192,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	
 	// Config legenda - pode ser passada de fora
 	this.legend_control_defaults = {};
-	this.legcell_dims = { w: 40, h: 20 };
+	//this.legcell_dims = { w: 40, h: 20 };
 	this.layer_notviz_image_params = null;
 	
 	this.perattribute_indexing = {
@@ -404,7 +404,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	};
 	this.updateVisibilityWidget = function() {
 		// TODO - verificar interacção com a legenda
-		this.style_visibility.updateWidget("LEG", this.getI18NMsgFunc(), null);
+		this.style_visibility.updateWidget("LEG", this.getI18NMsgFunc());
 	};
 	this.clearVisibilityData = function(p_typestr) {
 		if (p_typestr == "redraw") {
@@ -501,6 +501,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			
 			cx = pt[0];
 			cy = pt[1];
+			
 
 			this.callSequence.addMsg("calcMapTransform", _inv, "center coords set from env");
 
@@ -516,7 +517,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				scale = MapCtrlConst.MINSCALE;
 				k = scale * (MapCtrlConst.MMPD / 1000.0);
 			}
-
+			
 			currentTransform.setScaling(k);
 			this.setCenter(cx, cy);		
 
@@ -533,7 +534,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 
 			cx = cen[0];
 			cy = cen[1];
-			}
+		}
 		
 		this.prevhdims = [hwidth, hheight];
 
@@ -596,6 +597,8 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		var env = new Envelope2D();
 		env.setMinsMaxs(p_minx, p_miny, p_maxx, p_maxy);
 		this.calcMapTransform(env);
+		this.transformsQueue.checkToStore();
+
 		this.prepareRefreshDraw(opt_filter);
 	};
 	
@@ -654,7 +657,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		let dx=0, dy=0;
 		let deltascrx =  Math.abs(p_start_screen[0] - p_x);
 		let deltascry =  Math.abs(p_start_screen[1] - p_y);
-		
+
 		//console.log(dx, '<', deltascrx, dy, '<', deltascry);
 		
 		if (opt_origin == 'touch') {
@@ -1219,7 +1222,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		
 		this.style_visibility = new StyleVisibility(this, p_initconfig);
 		if (this.mapctrlsmgr) {
-			this.style_visibility.setWidgetId(this.mapctrlsmgr.visibility_widget_name);
+			this.style_visibility.setWidgetId(this.mapctrlsmgr.legendcfg.visibility_widget_name);
 		}
 
 	};
@@ -2067,9 +2070,10 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 */
 	this._pendingImageLoaded = function(p_rastername, p_lvl, p_col, p_row, p_objforlatevectordrawing) 
 	{
-		var rasterk = rasterkey(p_lvl, p_col, p_row);
-		var idx = -1;
-		var doLocalDraw = false;
+		const rasterk = rasterkey(p_lvl, p_col, p_row);
+		let filterfuncname = null, filterfuncdata = null;
+		let idx = -1;
+
 		if (this.pendingimages[p_rastername] !== undefined && this.pendingimages[p_rastername] != null) {
 			idx = this.pendingimages[p_rastername].indexOf(rasterk);
 		}
@@ -2086,7 +2090,15 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		if (this.images[p_rastername][rasterk] === undefined) {
 			console.error("Missing raster object for "+p_rastername+", raster key:"+rasterk);
 		} else {
-			this.drawImageInCanvas(p_rastername, this.images[p_rastername][rasterk]);
+			
+			if (this.lconfig[p_rastername].filterfunc !== undefined) {
+				filterfuncname = this.lconfig[p_rastername].filterfunc;
+				if (this.lconfig[p_rastername].filterfuncdata !== undefined) {
+					filterfuncdata = this.lconfig[p_rastername].filterfuncdata;
+				}
+			}
+			
+			this.drawImageInCanvas(this.images[p_rastername][rasterk], filterfuncname, filterfuncdata);
 			this.images[p_rastername][rasterk].drawn = true;
 			if (this.drawnrasters.indexOf(p_rastername) < 0) {
 				this.drawnrasters.push(p_rastername);
@@ -2139,52 +2151,18 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 
 	};
 
-	this.drawImageInCanvas = function(p_rastername, p_imageelem, opt_force, opt_displaylayer) 
-	{		
+	this.drawImageInCanvas = function(p_imageelem, opt_filterfuncname, opt_filterfuncdata, opt_displaylayer) {		
 		if (typeof p_imageelem != 'undefined') 
 		{
 			var rasterkey = rasterkey_from_pyramid_pos(p_imageelem.pyrpos)
 			this.getGraphicController().drawImage(p_imageelem.elem, p_imageelem.ulterrain[0], 
 				p_imageelem.ulterrain[1], false, 'lt', p_imageelem.sizes[0], p_imageelem.sizes[1], 
-				null, null, opt_displaylayer);
+				null, opt_filterfuncname, opt_filterfuncdata, opt_displaylayer);
 
 			p_imageelem.drawn = true;
 		}		
 	};
 
-/*
-	this.drawImageInCanvas = function(p_rastername, p_imageelem, opt_force, opt_displaylayer) 
-	{		
-		if (typeof p_imageelem != 'undefined') 
-		{
-			var rasterkey = rasterkey_from_pyramid_pos(p_imageelem.pyrpos)
-			/* if (p_imageelem.elem.complete || opt_force) 
-			{
-				
-				console.log(p_imageelem.elem.complete + ", force:" + opt_force);
-				// If image has loaded, let's draw.
-				// Update FEV 2020 - this.drawImage version now awaits for full image load before drawing
-				//					Image full load is now doubly guaranteed.
-				* */
-				//console.log(rasterkey + " compl:" + p_imageelem.elem.complete + ", force:" + opt_force + ", opt_displaylayer:" + opt_displaylayer);
-/**				
-				this.getGraphicController().drawImage(p_imageelem.elem, p_imageelem.ulterrain[0], 
-					p_imageelem.ulterrain[1], false, 'lt', p_imageelem.sizes[0], p_imageelem.sizes[1], 
-					null, null, opt_displaylayer);
-
-				p_imageelem.drawn = true;
-				****/
-			/* } 
-			else 
-			{
-				// wait for full image load, increment pending image load for this rasterlayer
-				if (this.pendingimages[p_rastername].indexOf(rasterkey) < 0) {
-					this.pendingimages[p_rastername].push(rasterkey);
-				}
-			} 
-		}		
-	};
-*/
 	this.drawFeatureInCanvas = function(p_feature,
 			p_dostroke, p_dofill, p_markerf, is_inscreenspace, p_dolog, 
 			opt_layername,  
@@ -2809,7 +2787,8 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	{
 		'use strict';
 
-		var maxallowed_duration, t0, t1, rdata, i=0, dodraw = true, ret=false;
+		let maxallowed_duration, t0, t1, rdata, i=0, dodraw = true, ret=false;
+		let filterfuncname = null, filterfuncdata = null;
 		
 		if (opt_maxallowed_duration) {
 			maxallowed_duration = opt_maxallowed_duration;
@@ -2826,10 +2805,12 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			return false;
 		} 
 		
-		var found = false;
-		for (var rk in rdata) {
-			found = true;
-			break;
+		let found = false;
+		for (let rk in rdata) {
+			if (rdata.hasOwnProperty(rk)) {
+				found = true;
+				break;
+			}
 		}
 		if (!found) {
 			return false;
@@ -2844,12 +2825,19 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		}	
 
 		this.imagecounters.resetLoaded(p_rastername);
+
+		if (this.lconfig[p_rastername].filterfunc !== undefined) {
+			filterfuncname = this.lconfig[p_rastername].filterfunc;
+			if (this.lconfig[p_rastername].filterfuncdata !== undefined) {
+				filterfuncdata = this.lconfig[p_rastername].filterfuncdata;
+			}
+		}
 		
 		for (var rkey in rdata) 
 		{
 			if (!rdata[rkey].drawn)
 			{
-				this.drawImageInCanvas(p_rastername, rdata[rkey], opt_force, opt_displaylayer);
+				this.drawImageInCanvas(rdata[rkey], filterfuncname, filterfuncdata, opt_displaylayer);
 				ret = true;
 				if (maxallowed_duration > 0 ) 
 				{
@@ -4014,6 +4002,10 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			}
 		}
 		
+		if (typeof hideLoaderImg != 'undefined') {
+			hideLoaderImg();
+		}
+		
 		this._cancelCurrentChange = false;
 	};
 
@@ -4421,10 +4413,12 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		var text_y = mask_y + txtsz + 2;
 
 
-		this.getGraphicController().setFillStyle('rgba(255, 0, 0, 0.5)', ctxlyr);
-
+		this.getGraphicController().setFillStyle('rgba(255, 0, 0, 0.5)', ctxlyr);		
 		this.getGraphicController().drawRect(0, mask_y, wid, height, false, true, inscreenspace, ctxlyr);
+		
 		this.getGraphicController().setFillStyle('white', ctxlyr);
+		this.getGraphicController().setTextAlign("left", ctxlyr);
+		this.getGraphicController().setShadowOffsetX(0, ctxlyr);
 		this.getGraphicController().plainText(msg, [margin, text_y], ctxlyr);
 		this.getGraphicController().restoreCtx(ctxlyr);
 	}

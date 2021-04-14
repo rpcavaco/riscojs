@@ -373,7 +373,7 @@ function Envelope2D() {
 		this.maxx = p_center[0];
 		this.maxy = p_center[1];		
 	};
-	
+
 	this.setAround = function(p_center, p_half_width) {
 		if (p_center === null || typeof p_center != 'object' || p_center.length != 2) 
 			throw new Error(this.msg("INVALIDPT"));
@@ -954,6 +954,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 	};
 	
 	this.setWidgetId = function(p_widget_id) {
+		console.log("setWidgetId:", p_widget_id);
 		this.widget_id = p_widget_id;
 	};	
 	this.clearvis = function(p_hard) {
@@ -1064,7 +1065,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		return ret;	
 	};
 	
-	this.updateWidget = function(p_title_caption_key, p_i18n_function, p_floating_widgets_mgr) {
+	this.updateWidget = function(p_title_caption_key, p_i18n_function) {
 
 		let leg_container = null;	
 		let oidx;
@@ -1081,20 +1082,24 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		let thematic_widget = null;
 		
 		let legend_control_defaults = this.mapcontroller.legend_control_defaults;
-		let legcell_dims = this.mapcontroller.legcell_dims;
 		let layer_notviz_image_params = this.mapcontroller.layer_notviz_image_params;
 		
 		let items = 0, cnvidx = -1, legendcaption_created=false;
 		let leg_par, legp_style, leg_tmp_elem, leg_tmp_style;
 		
-		let leg_prevcols = 0;
 		let leg_dims = { rows:0, cols:0 };
+
+		const legcfg = this.mapcontroller.mapctrlsmgr.legendcfg;		
+		const visibility_widget = document.getElementById(legcfg.visibility_widget_name);
+		const legend_ctrl = visibility_widget.parentNode;
+		
+		console.log("===== ENTRADA =========== updateWidget ===========");
 		
 		if (legend_control_defaults.entrywidth === undefined) {
-			leg_tmp_elem = document.querySelector('#legendctrl td');
+			leg_tmp_elem = document.querySelector(String.format('#{0} td', legcfg.visibility_widget_name));
 			if (leg_tmp_elem) {				
 				leg_tmp_style = getComputedStyle(leg_tmp_elem);				
-				legend_control_defaults.entrywidth = parseInt(leg_tmp_style.getPropertyValue('width')) + legcell_dims.w;		
+				legend_control_defaults.entrywidth = parseInt(leg_tmp_style.getPropertyValue('width')) + legcfg.legcell_dims.w;		
 			}
 		}
 
@@ -1103,22 +1108,23 @@ function StyleVisibility(p_mapctrlr, p_config) {
 			if (leg_tmp_elem) {				
 				leg_tmp_style = getComputedStyle(leg_tmp_elem);				
 				legend_control_defaults.width = parseInt(leg_tmp_style.getPropertyValue('width'));		
+				legend_control_defaults.height = parseInt(leg_tmp_style.getPropertyValue('height'));		
 			}
 		}
 
 		if (legend_control_defaults.width === undefined) {
-			legend_control_defaults.width = 20;
+			legend_control_defaults.width = legcfg.legcell_dims.w;
 		} else {
 			leg_tmp_elem = document.getElementById('legendctrl');
 			if (leg_tmp_elem) {
-			leg_tmp_elem.style.width = legend_control_defaults.width + 'px';
-		}
+				leg_tmp_elem.style.width = legend_control_defaults.width + 'px';
+			}
 		}
 
 		if (legend_control_defaults.entrywidth === undefined) {
-			legend_control_defaults.entrywidth = 120;
+			legend_control_defaults.entrywidth = 3 * legcfg.legcell_dims.w;
 		}
-
+		
 		// Internationalized legend container title
 		function createTitleCaption(p_parent, p_title_key) {
 			let x = document.createTextNode(p_i18n_function(p_title_key));				
@@ -1141,56 +1147,52 @@ function StyleVisibility(p_mapctrlr, p_config) {
 				additions_to_backingobj = 0; // additions to backing object from JUST this layer
 				
 				if (this.styles[lname] !== undefined) {
-
-				for (var k=0; k<this.styles[lname].length; k++) {
-
-					sty = clone(this.styles[lname][k]);
-					if (sty == null) {
-						continue;
-					}
-
-					if (sty["thematic_control"] !== undefined && sty["thematic_control"] != null && sty["thematic_control"].length > 0) {
-						if (this.elementstats[sty._index] !== undefined) {
-							thematic_widget = { "ctrl": sty["thematic_control"], "styleobj": sty, "lblsample": this.elementstats[sty._index][4] };
-						} else {
-							thematic_widget = { "ctrl": sty["thematic_control"], "styleobj": sty, "lblsample": "" };
-						}
-					}
-
-					// Share thematic control from main style to transient and other styles added to layer
-					if ((sty["thematic_control"] === undefined || sty["thematic_control"] == null) && (thematic_widget != null)) {
-						sty["thematic_control"] = thematic_widget["ctrl"];
-					}
-
-					// cleanup previous styles for empty symbology classes 
-					/*if (this.elementstats[sty._index] !== undefined && ((this.elementstats[sty._index][0] + this.elementstats[sty._index][1] + this.elementstats[sty._index][2]) == 0)) {
-						console.log("SAIR 1118 lyr:"+lname);
-						//continue;
-					} */
-
-					if (sty['transient'] !== undefined && sty['transient']) {
-						transients_found++;
-					}
-					if (sty["lyrlabelkey"] !== undefined && sty["lyrlabelkey"].length > 0) {
-						lyrtitle = p_i18n_function(sty["lyrlabelkey"]);
-					}
-					if (!labelkey_found && ((sty["lyrlabelkey"] !== undefined && sty["lyrlabelkey"].length > 0) || 
-							(sty.style !== undefined && sty.style["labelkey"] !== undefined && sty.style["labelkey"].length > 0)
-						)) {
-							labelkey_found = true;
-					}				
-
-					ordredstyles.push([sty._index, sty]);
-				}
 					
-				}
-/*
-for (var k=0; k<ordredstyles.length; k++) {
-console.log(ordredstyles[k]);
-}
+					console.log("  == layer com "+this.styles[lname].length+" estilos:", lname);
 
-console.log("lname:"+lname+" lblk found:"+labelkey_found);
-*/			
+					for (var k=0; k<this.styles[lname].length; k++) {
+
+						sty = clone(this.styles[lname][k]);
+						if (sty == null) {
+							continue;
+						}
+
+						if (sty["thematic_control"] !== undefined && sty["thematic_control"] != null && sty["thematic_control"].length > 0) {
+							if (this.elementstats[sty._index] !== undefined) {
+								thematic_widget = { "ctrl": sty["thematic_control"], "styleobj": sty, "lblsample": this.elementstats[sty._index][4] };
+							} else {
+								thematic_widget = { "ctrl": sty["thematic_control"], "styleobj": sty, "lblsample": "" };
+							}
+						}
+
+						// Share thematic control from main style to transient and other styles added to layer
+						if ((sty["thematic_control"] === undefined || sty["thematic_control"] == null) && (thematic_widget != null)) {
+							sty["thematic_control"] = thematic_widget["ctrl"];
+						}
+
+						// cleanup previous styles for empty symbology classes 
+						/*if (this.elementstats[sty._index] !== undefined && ((this.elementstats[sty._index][0] + this.elementstats[sty._index][1] + this.elementstats[sty._index][2]) == 0)) {
+							console.log("SAIR 1118 lyr:"+lname);
+							//continue;
+						} */
+
+						if (sty['transient'] !== undefined && sty['transient']) {
+							transients_found++;
+						}
+						if (sty["lyrlabelkey"] !== undefined && sty["lyrlabelkey"].length > 0) {
+							lyrtitle = p_i18n_function(sty["lyrlabelkey"]);
+						}
+						if (!labelkey_found && ((sty["lyrlabelkey"] !== undefined && sty["lyrlabelkey"].length > 0) || 
+								(sty.style !== undefined && sty.style["labelkey"] !== undefined && sty.style["labelkey"].length > 0)
+							)) {
+								labelkey_found = true;
+						}				
+						//console.log("pushing", lname, "lyrtitle:", lyrtitle, sty);
+
+						ordredstyles.push([sty._index, sty]);
+					}
+						
+				}
 				// If TOC label exists
 				if (labelkey_found) {
 				
@@ -1213,9 +1215,11 @@ console.log("lname:"+lname+" lblk found:"+labelkey_found);
 					// if no features found, don't create  TOC entry
 					let fc = this.mapcontroller.featuresFound(lname);
 					if (fc < 1) {
-						//console.warn("SAIDA 3: layer "+lname+" SEM FEATS");
+						console.warn("SAIDA 3: layer "+lname+" SEM FEATS");
 						continue;
 					}	
+					
+					console.log("fc:", fc, "ordredstyles:",  ordredstyles.length, JSON.stringify(ordredstyles));
 					
 					if (ordredstyles.length > 1) {
 						
@@ -1224,6 +1228,9 @@ console.log("lname:"+lname+" lblk found:"+labelkey_found);
 							
 							oidx = ordredstyles[j][0];
 							sty = ordredstyles[j][1];
+							
+							console.log(lname, Object.keys(sty));
+							console.log(Object.keys(sty.style));
 
 							tmpgtype = this.getGeomType(oidx);	
 							if (gtype == null || tmpgtype != "NONE") {
@@ -1245,6 +1252,8 @@ console.log("lname:"+lname+" lblk found:"+labelkey_found);
 									continue;
 								}
 							}
+							
+							console.log(1261, sty.lname, oidx);
 							
 							if ((sty["lyrlabelkey"] === undefined || sty["lyrlabelkey"].length < 1) && 
 									(sty.style["labelkey"] === undefined || sty.style["labelkey"].length < 1)
@@ -1296,7 +1305,7 @@ console.log("lname:"+lname+" lblk found:"+labelkey_found);
 								possibly_emptysubentries_orderedstylesidx = j;
 
 							}
-						}	
+						}	// for (var j=0; j<ordredstyles.length; j++) {
 						
 					} else if (ordredstyles.length > 0) {
 
@@ -1341,7 +1350,7 @@ console.log("lname:"+lname+" lblk found:"+labelkey_found);
 					}
 //				} else {
 //console.log("SAIR E lname:"+lname+" no labelkey");
-}
+				} // if (labelkey_found)
 
 				// If this layer was not added to backing object and has thematic widget,
 				// a dummy style is added to provide a TOC entry with invisibility symbol
@@ -1366,10 +1375,11 @@ console.log("lname:"+lname+" lblk found:"+labelkey_found);
 					backing_obj.grpbndry = 'NONE';
 					backing_obj_arr.push(clone(backing_obj));
 					additions_to_backingobj++;
-				}	
-			}
+				}
+				
+			} // for (lnamesidx=(this.maplyrnames.length-1); lnamesidx>=0; lnamesidx--) {
 
-			
+
 			// Ensure group boundaries are properly closed
 			for (var bi=1; bi<backing_obj_arr.length; bi++) {				
 				if (backing_obj_arr[bi].lblstyle == 'ENTRY' && 
@@ -1383,12 +1393,17 @@ console.log("lname:"+lname+" lblk found:"+labelkey_found);
 					backing_obj_arr[backing_obj_arr.length-1].grpbndry = 'STOP';
 				}	
 			}	
-
-			var new_backing_obj_arr = [];
-			if (p_floating_widgets_mgr!=null && p_floating_widgets_mgr.calcLegSize !== undefined) {
-
-			p_floating_widgets_mgr.calcLegSize(backing_obj_arr.length, leg_dims);
 			
+			let cols = 1; 			
+			while ( ((backing_obj_arr.length * legcfg.elem_height) * 1.0 / cols) > legend_control_defaults.height && cols < legcfg.max_cols ) {
+				cols++;
+			}			
+			leg_dims.cols = cols;
+			leg_dims.rows = Math.ceil(backing_obj_arr.length / cols);
+
+			let new_backing_obj_arr = [];
+			let leg_prevcols = 0;
+
 			while (leg_dims.cols > leg_prevcols) {
 				leg_prevcols = leg_dims.cols;
 				if (leg_dims.cols > 1) {
@@ -1415,11 +1430,10 @@ console.log("lname:"+lname+" lblk found:"+labelkey_found);
 					backing_obj_arr = clone(new_backing_obj_arr);
 					p_floating_widgets_mgr.calcLegSize(backing_obj_arr.length, leg_dims);
 				}
-			}
-			}
+			} // while (leg_dims.cols > leg_prevcols)
 
 			currlayercaption = null;		
-			var paddingval;
+			let paddingval;
 			
 			leg_container = document.getElementById(this.widget_id);
 			if (leg_container) {
@@ -1545,7 +1559,7 @@ console.log("lname:"+lname+" lblk found:"+labelkey_found);
 								setClass(r, "bottombar");
 							}
 
-							let w = legcell_dims.w, h = legcell_dims.h;
+							let w = legcfg.legcell_dims.w, h = legcfg.legcell_dims.h;
 							
 							if (!backing_obj.empty) {
 
@@ -1623,7 +1637,9 @@ console.log("lname:"+lname+" lblk found:"+labelkey_found);
 						break;
 					}
 				}
-			}
+				
+				leg_par.style.removeProperty('visibility');
+			} // if (leg_container) {
 			
 			if (typeof STATIC_LEGEND == 'undefined' || !STATIC_LEGEND) {
 				if (!legendcaption_created && capparent!=null && capparent.parentElement !== undefined) {
@@ -1639,7 +1655,10 @@ console.log("lname:"+lname+" lblk found:"+labelkey_found);
 				}
 			}
 			
-		}
+		} // if (this.widget_id) {
+		
+		console.log("===== SAIDA =========== updateWidget ===========");
+		
 	};
 
 	this.incrementElemStats = function(p_gtype, p_style_obj, p_layername, opt_increment, opt_lblsample) {

@@ -182,7 +182,7 @@ function ctxGenericApplyStyle(p_canvasctx, p_styleobj, p_patterns, out_styleflag
 		p_canvasctx.font = "10px sans-serif";
 	}
 	if (foundattrs.indexOf("align") < 0) {
-		p_canvasctx.textAlign = "center";
+		p_canvasctx.textAlign = "left";
 	}
 	if (foundattrs.indexOf("baseline") < 0) {
 		p_canvasctx.textBaseline = "alphabetic";
@@ -363,7 +363,7 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 	var canvasDiv = document.getElementById(this._canvasAncestorElId);
 	this.canvasDims[0] = canvasDiv.clientWidth;
 	this.canvasDims[1] = canvasDiv.clientHeight;
-	canvasDiv.style.position = 'relative'; 
+	// canvasDiv.style.position = 'relative'; 
 	
 	/*
 	console.log(this.canvasDims);
@@ -806,7 +806,7 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 			dlayer = this.activeDisplayLayer;
 		}
 		ctx = this._ctxdict[dlayer];
-
+		
 		if (this.getLabelBackground() !== undefined) 
 		{
 			ctx.save();
@@ -1473,6 +1473,7 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 		
 		pt.length = 2;
 		cpt.length = 2;
+		
 
 		if (p_llx!=null && p_lly!=null) 
 		{
@@ -1570,7 +1571,7 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 			}
 
 			// overwrite original image
-			this._ctxdict[dlayer].putImageData(imageData, p_x, p_y);    			
+			p_ctx.putImageData(imageData, p_x, p_y);    			
 			
 		} catch(e) {
 			var accepted = false
@@ -1590,10 +1591,12 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 	
 	this.drawImage = function(p_imageobj, p_x, p_y, 
 			b_is_inscreenspace, opt_positioning, opt_width, opt_height, 
-			opt_forcemindim, opt_imgfilter_func, opt_imgfilteradicdata, 
+			opt_forcemindim, opt_imgfilter_funcname, opt_imgfilteradicdata, 
 			opt_displaylayer) {
 				
 		var pos, dlayer, dimdefined, pt = [], outxy=[], dims=[];
+		let filterfunc = null;
+		
 		if (opt_displaylayer) {
 			dlayer = opt_displaylayer;
 		} else {
@@ -1634,8 +1637,12 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 					throw new Error(e);
 				}
 			}
-			if (opt_imgfilter_func) {
-				opt_imgfilter_func(this._ctxdict[dlayer], p_imageobj, outxy[0], outxy[1], dims[0], dims[1], opt_imgfilteradicdata);
+			if (opt_imgfilter_funcname !=null && this[opt_imgfilter_funcname] !== undefined) {
+				filterfunc = this[opt_imgfilter_funcname];
+			}
+			
+			if (filterfunc) {
+				filterfunc(this._ctxdict[dlayer], p_imageobj, outxy[0], outxy[1], dims[0], dims[1], opt_imgfilteradicdata);
 			}
 		} else {
 			(function(p_pctx, p_sclfactor, p_img, p_pos, p_px, p_py, p_optw, p_opth, p_opt_imgfilter_func, p_imgfilteradicdata) {
