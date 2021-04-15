@@ -396,9 +396,21 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		return this.getGraphicController().maxzindex;
 	};
 	this.getLayerTitle = function(p_layername) {
-		let ret = "";
+		let fmts, val, ret = "";
 		if (this.lconfig[p_layername].labelkey !== undefined && this.lconfig[p_layername].labelkey != null) {
-			ret = this.getI18NMsg(this.lconfig[p_layername].labelkey);
+			if (this.lconfig[p_layername].labelvalue !== undefined && this.lconfig[p_layername].labelvalue != null) {
+				fmts = this.getI18NMsg(this.lconfig[p_layername].labelkey);
+				console.assert(typeof fmts == "object", String.format("{0}.labelkey expected to be list of 2 format strings, since it HAS 'labelvalue' defined", p_layername));
+				val = this.lconfig[p_layername].labelvalue;
+				if (val == 1) {
+					ret = String.format(fmts[0], val);
+				} else {
+					ret = String.format(fmts[1], val);
+				}
+			} else {
+				ret = this.getI18NMsg(this.lconfig[p_layername].labelkey);
+				console.assert(typeof ret == "string", String.format("{0}.labelkey expected to be string, since HAS NO 'labelvalue' defined", p_layername));
+			}
 		}
 		return ret;
 	};

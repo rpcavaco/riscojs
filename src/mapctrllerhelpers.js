@@ -1290,7 +1290,17 @@ function StyleVisibility(p_mapctrlr, p_config) {
 								}
 								
 								backing_obj.empty = false;
-								backing_obj.lbl = p_i18n_function(sty.style["labelkey"]);
+								if (sty.style["labelvalue"] !== undefined && sty.style["labelvalue"] != null) {
+									const fmts = p_i18n_function(sty.style["labelkey"]);
+									const val = sty.style["labelvalue"];
+									if (val == 1) {
+										backing_obj.lbl = String.format(fmts[0], val);
+									} else {
+										backing_obj.lbl = String.format(fmts[1], val);
+									}
+								} else {
+									backing_obj.lbl = p_i18n_function(sty.style["labelkey"]);
+								}
 								backing_obj.lblstyle = 'SUBENTRY';
 								backing_obj.colspan = 1;
 								backing_obj.lblsample = this.elementstats[oidx][4];
