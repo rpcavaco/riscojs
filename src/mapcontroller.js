@@ -418,11 +418,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		this.style_visibility.updateWidget("LEG", this.getI18NMsgFunc());
 	};
 	this.clearVisibilityData = function(p_typestr) {
-		if (p_typestr == "redraw") {
-			this.style_visibility.clearvis(false);
-		} else {
-			this.style_visibility.clearvis(true);
-		}
+		this.style_visibility.clearvis();
 	};
 	this.muteVectors = function(p_do_mute) {
 		if (this.dodebug) {
@@ -627,9 +623,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 /** @this MapController 
   * Redraw: refresh map display by reusing previously loaded data. For internal use.
   * @param {boolean} [opt_forceprepdisp] - (optional) force display canvas initialization, it's performed automatically at first refresh invocation.
-  * @param {number} [opt_maxallowed_duration] - (optional) timeout value; when reached, redraw process is stopped (used to prevent screen jagging during redraw in interactive pan or zoom).
-  * @param {number} [opt_centerx] - (optional) force new x-coord center of map transformation.
-  * @param {number} [opt_centery] - (optional) force new y-coord center of map transformation.
+  * @param {boolean} [opt_nottimed] - (optional) don't use timeout value for which, when reached, redraw process will be stopped (used to prevent screen jagging during redraw in interactive pan or zoom).
 */
 	this.redraw = function(opt_forceprepdisp, opt_nottimed) {
 		this.onChangeStart("redraw");
@@ -3307,6 +3301,10 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			obr_i++;
 			fobj = this.onBeforeRefresh[obr_i];
 		}
+
+		// clear TOC stats
+		this.clearVisibilityData();
+		
 		
 		// Verify that small scale limit was runover and activate small scale themes accordingly
 		
@@ -3834,7 +3832,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	this.onChangeStart = function(p_typestr) {
 		
 		//console.log("change start "+p_typestr);
-		this.clearVisibilityData(p_typestr);
+		//this.clearVisibilityData(p_typestr);
 		
 		if (this.mapctrlsmgr) {
 			let wdg, wdgname;
