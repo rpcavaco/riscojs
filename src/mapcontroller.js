@@ -171,7 +171,6 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	this.prevhdims = [];
 	this.styleStack = {}; // by display layer
 	this.currentstyle = null;
-	this.altstylemode = null;
 	this.lconfig = {};
 	this.fillpatterns = {};
 	this.small_scale_source = null;
@@ -1241,29 +1240,9 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	
 	this.getLayerConfig = function(p_layername) {
 		return this.lconfig[p_layername];
-	}
+	};
 
-/*
-	this.getLayerDefaultStyle = function(p_layername) {
-		let ret = null, lc = this.lconfig[p_layername];
-		if (lc) {
-			if (this.altstylemode) {
-				ret = lc['altstyle'];
-			} else {
-				if (lc['style'] !== undefined) {
-					ret = lc['style'];
-				} else if (lc['condstyle'] !== undefined && lc['condstyle'] != null && lc['condstyle']['default'] !== undefined) {
-					ret = lc['condstyle']['default'];
-				}
-			}
-		}
-		
-		return ret;
-	}
-*/
-
-	this.checkLayerDrawingCondition = function(p_layername) 
-	{
+	this.checkLayerDrawingCondition = function(p_layername) {
 		var ret = "NOSTYLE";
 		var lyrconf = this.getLayerConfig(p_layername);
 		if (lyrconf === undefined) {
@@ -1279,7 +1258,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			console.log("checkLayerDrawingCondition layer:"+p_layername+", ret:"+ret);	
 		}
 		return ret;
-	}
+	};
 	
 	this.getDrawableLayerList = function(out_drawable_layer_lst, opt_alllayers_returns_emptylist, opt_include_onlydata) 
 	{
@@ -1852,8 +1831,8 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	};
 
 	this.setFeatureData = function(layername, data, p_dontdraw_flag,
-							p_perattribute_style, p_permode_style, 
-							p_markerfunction, p_permodemarker, 
+							p_perattribute_style, 
+							p_markerfunction, 
 							is_inscreenspace, 
 							in_styleflags, opt_displaylayer)
 	{
@@ -1916,8 +1895,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 						if (!p_dontdraw_flag) {
 							try {
 								this._drawFeature(feat, p_perattribute_style, 
-									p_permode_style, p_markerfunction, 
-									p_permodemarker, is_inscreenspace,
+									p_markerfunction, is_inscreenspace,
 									layername,in_styleflags.fillStroke, 
 									dodebug, opt_displaylayer);
 							} catch(e) {
@@ -1932,8 +1910,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				if (!inerror && !drawn && !p_dontdraw_flag)
 				{					
 					this._drawFeature(feat, p_perattribute_style, 
-							p_permode_style, p_markerfunction, 
-							p_permodemarker, is_inscreenspace,
+							p_markerfunction, is_inscreenspace,
 							layername,
 							in_styleflags, dodebug, opt_displaylayer);
 				}
@@ -1980,9 +1957,8 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 						if (!p_dontdraw_flag) 
 						{
 							try {
-								this._drawFeature(feat, p_perattribute_style, p_permode_style, 
-										p_markerfunction, p_permodemarker,
-										is_inscreenspace, layername, in_styleflags, 
+								this._drawFeature(feat, p_perattribute_style,
+										p_markerfunction, is_inscreenspace, layername, in_styleflags, 
 										dodebug, opt_displaylayer);
 								drawn = true;
 							} catch(e) {
@@ -1998,9 +1974,8 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 
 				if (!inerror && !drawn && !p_dontdraw_flag)
 				{
-					this._drawFeature(feat, p_perattribute_style, p_permode_style, 
-							p_markerfunction, p_permodemarker,
-							is_inscreenspace, layername, in_styleflags,  
+					this._drawFeature(feat, p_perattribute_style,  
+							p_markerfunction, is_inscreenspace, layername, in_styleflags,  
 							dodebug, opt_displaylayer);
 				}
 
@@ -2219,8 +2194,8 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	
 	/* 12 - opt_noincvizstats - Don't increment viz statistics */
 	
-	this._drawFeature = function(p_featdata, p_perattribute, p_permode, 
-									p_markerfunction, p_permodemarker,
+	this._drawFeature = function(p_featdata, p_perattribute, 
+									p_markerfunction,
 									is_inscreenspace, p_layername,
 									out_styleflags, opt_dodebug, 
 									opt_displaylayer, opt_noincvizstats)
@@ -2260,18 +2235,9 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 
 		if (p_markerfunction!=null) {
 			markerf = p_markerfunction;
-		} else if (p_permodemarker != null && this.altstylemode != null && p_permodemarker[this.altstylemode] !== undefined) {
-			markerf = p_permodemarker[this.altstylemode];
 		}
 
-		if (p_permode != null && this.altstylemode != null && p_permode[this.altstylemode] !== undefined) {
-			// Conditional styling using "mode-oriented" attributes:
-			// <mode> is a key inside "condstyle" dictionary and, 
-			// if <mode> is active (string in this.altstylemode), style attributes under <mode>
-			// are here applied to the map.
-			this.pushStyle(p_permode[this.altstylemode], out_styleflags, displaylayer);
-			stylechanged = true;	
-		} else if (p_perattribute) {
+		if (p_perattribute) {
 			// Class-oriented thematic mapping, based on attribute values
 			for (var attrname in p_perattribute)
 			{
@@ -2355,8 +2321,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				p_layername,
 				displaylayer);
 				
-			//console.log(p_layername+" opt_noincvizstats:"+opt_noincvizstats);
-			if (!opt_noincvizstats && this.currentstyle!=null) {
+			if (opt_noincvizstats!==true && this.currentstyle!=null) {
 				this.style_visibility.incrementElemStats(gtype, this.currentstyle, p_layername);
 			}
 							
@@ -2444,11 +2409,10 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	 // this.activateLayerStyle = function(layername, out_styleflags, 
 		//		out_return, opt_displaylayer)
 	this.activateLayerStyle = function(layername, out_return_obj, 
-				opt_displaylayer, opt_style, opt_symb_modifier)
+				opt_displaylayer, opt_style)
 	{
 		'use strict';
 		
-		// TODO -- FALTA IMPLEMENTAR opt_symb_modifier 
 		var ret = true;
 		var p_scale_val, selstyle=null,  dep_rendering_scaleval = null;
 		var this_has_bgdependent = false;
@@ -2464,19 +2428,13 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		// antigamente hasstyle
 		out_return_obj.activestyle = null;
 		out_return_obj.perattribute = null;
-		out_return_obj.permode = null;
 		out_return_obj.markerfunction = null;
-		out_return_obj.permodemarker = null;
 		
 		if (this.lconfig[layername]["markerfunction"] !== undefined && this.lconfig[layername]["markerfunction"] != null) {
 			out_return_obj.markerfunction = this.lconfig[layername]["markerfunction"];
 		}
-		if (this.lconfig[layername]["permodemarker"] !== undefined && this.lconfig[layername]["permodemarker"] != null) {
-			out_return_obj.permodemarker = this.lconfig[layername]["permodemarker"];
-		}
 
-		if (opt_style)
-		{
+		if (opt_style) {
 			out_return_obj.activestyle = opt_style;
 			this.pushStyle(opt_style, out_return_obj.fillStroke, opt_displaylayer);
 		} else { 
@@ -2542,7 +2500,6 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			} else if (this.lconfig[layername]["condstyle"] !== undefined && this.lconfig[layername]["condstyle"] != null) {
 				selstyle = clone(this.lconfig[layername]["condstyle"]["default"]);
 				out_return_obj.perattribute = clone(this.lconfig[layername]["condstyle"]["perattribute"]);
-				out_return_obj.permode = clone(this.lconfig[layername]["condstyle"]["permode"]);
 			}
 			
 			if (selstyle != null) {
@@ -2653,9 +2610,8 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		return ret;
 	};
 
-	// opt_markerf_modifier - deverá ter correspondência com um modo / chave de permodemarker
 	this.drawSingleFeature = function(p_layername, p_objid, is_inscreenspace,
-							opt_displaylayer, opt_style, opt_markerf_modifier,
+							opt_displaylayer, opt_style, 
 							b_renderlabel, opt_labelstyle, 
 							opt_do_debug)
 	{
@@ -2680,23 +2636,11 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		if (ldata[p_objid] !== undefined && ldata[p_objid] != null)
 		{
 			feat = ldata[p_objid];
-			if (opt_markerf_modifier) {
-				if (out_return.permodemarker == null || out_return.permodemarker[opt_markerf_modifier] === undefined) {
-					console.warn("drawSingleFeature, marker modifier mode '"+opt_markerf_modifier+"' given but no config exists to support it (in permodemarker), layer:"+p_layername);
-					return null;
-				}
-				this._drawFeature(feat, out_return.perattribute, out_return.permode, 
-									out_return.permodemarker[opt_markerf_modifier], {},
-									is_inscreenspace, p_layername,
-									out_return.fillStroke, dodebug,  
-									opt_displaylayer, true);
-			} else {
-				this._drawFeature(feat, out_return.perattribute, out_return.permode, 
-									out_return.markerfunction, out_return.permodemarker,
-									is_inscreenspace, p_layername,
-									out_return.fillStroke, dodebug,  
-									opt_displaylayer, true);
-			}
+			this._drawFeature(feat, out_return.perattribute,
+								out_return.markerfunction, 
+								is_inscreenspace, p_layername,
+								out_return.fillStroke, dodebug,  
+								opt_displaylayer, true);
 		} else {
 			console.warn("drawSingleFeature, NULL feature data, key:"+p_objid);
 			return null;
@@ -2742,7 +2686,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	// Server-emitted features are defined in always correct screen coords,
 	//  updated by server methods and changed between refreshes.
 
-	this.drawNewFeature = function(p_layername, p_feat, opt_symb_modifier,
+	this.drawNewFeature = function(p_layername, p_feat, 
 							opt_style, opt_displaylayer, opt_do_debug)
 	{
 		'use strict';
@@ -2752,41 +2696,14 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			throw new Error("drawNewFeature: null layername");
 		}
 		
-		this.activateLayerStyle(p_layername, out_return, opt_displaylayer, opt_style, opt_symb_modifier);
+		this.activateLayerStyle(p_layername, out_return, opt_displaylayer, opt_style);
 
-		// mudar isto para dentro de activateLayerStyle
-		//console.log(opt_symb_modifier);
-		//console.log(out_return);
-
-		if (opt_symb_modifier) {
-			if (out_return.permodemarker != null && out_return.permodemarker[opt_symb_modifier] !== undefined) {
-				opt = true;
-				mrkrf = out_return.permodemarker[opt_symb_modifier];
-			} else {
-				mrkrf = out_return.markerfunction;
-			}
-			if (!opt) {
-				if (out_return.permode != null && out_return.permode[opt_symb_modifier] !== undefined) {
-					opt = true;
-					//mrkrf = out_return.permodemarker[opt_symb_modifier];
-				} else {
-					//mrkrf = out_return.markerfunction;
-				}
-			}
-			if (!opt) {
-				console.warn("drawSingleFeature, marker modifier mode '"+opt_markerf_modifier+"' given but no config exists to support it (in permodemarker), layer:"+p_layername);
-				return null;
-			}
-		} else {
-			mrkrf = out_return.markerfunction;
-		}
-		
-
-			this._drawFeature(p_feat, out_return.perattribute, out_return.permode, 
-								mrkrf, out_return.permodemarker,
-								false, p_layername,
-								out_return.fillStroke, opt_do_debug, 
-								opt_displaylayer, false);
+		mrkrf = out_return.markerfunction;
+		this._drawFeature(p_feat, out_return.perattribute, 
+							mrkrf, 
+							false, p_layername,
+							out_return.fillStroke, opt_do_debug, 
+							opt_displaylayer, false);
 
 		if (out_return.hasstyle) {
 			this.popStyle(out_return.fillStroke, opt_displaylayer);
@@ -2881,7 +2798,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	};
 
 	this.drawLyr = function(layername, is_inscreenspace, p_inittime, 
-				out_styleflags, opt_maxallowed_duration, opt_displaylayer)
+				opt_maxallowed_duration, opt_displaylayer)
 	{
 		'use strict';
 		
@@ -2932,8 +2849,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				}
 
 				this._drawFeature(ldata[ci], out_return.perattribute, 
-									out_return.permode, out_return.markerfunction , 
-									out_return.permodemarker, is_inscreenspace, 
+									out_return.markerfunction, is_inscreenspace, 
 									layername, out_return.fillStroke,
 									dodebug, opt_displaylayer);
 				ci++;
@@ -2956,8 +2872,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				}
 
 				this._drawFeature(ldata[oidkey], out_return.perattribute, 
-						out_return.permode, out_return.markerfunction , 
-						out_return.permodemarker, is_inscreenspace, layername, 
+						out_return.markerfunction, is_inscreenspace, layername, 
 						out_return.fillStroke, dodebug, opt_displaylayer);
 				if (maxallowed_duration > 0)
 				{
@@ -3099,8 +3014,8 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 
 										try {
 											p_self.setFeatureData(lname, respdata, dontdraw, 
-											activateReturn.perattribute, activateReturn.permode, 
-											activateReturn.markerfunction, activateReturn.permodemarker, 
+											activateReturn.perattribute, 
+											activateReturn.markerfunction, 
 											p_inscreenspace, activateReturn.fillStroke, legend_attrnames);
 										} catch(e) {
 											console.log(".. error in _sendReadFeatureRequest, setFeatureData");
@@ -3177,10 +3092,10 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 										}
 
 										p_self.setFeatureData(lname, respdata, dontdraw, 
-										activateReturn.perattribute, activateReturn.permode,
-										activateReturn.markerfunction, activateReturn.permodemarker, 
+										activateReturn.perattribute, 
+										activateReturn.markerfunction, 
 										p_inscreenspace, styleflags);
-										p_self.drawLyr(lname, true, styleflags, 0, respdata)
+										p_self.drawLyr(lname, true, styleflags, respdata)
 
 										if (activateReturn.activestyle != null) {
 											p_self.popStyle(activateReturn.fillStroke);
@@ -3820,8 +3735,8 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	// p_maxallowed_duration -- limite tempo disponível, -1 ou null desliga
 	this.localDrawFeatures = function(do_clear, opt_nottimed)
 	{
-		var lname, styleflags = [];
-		var t0=0, t1=0;
+		let lname;
+		let t0=0, t1=0;
 		if (do_clear) {
 			this.clear(MapCtrlConst.CLEARMODE_VECTOR);
 		}
@@ -3847,7 +3762,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 					continue;
 				}
 
-				this.drawLyr(this.lnames[li], true, t0,  styleflags, delay);
+				this.drawLyr(this.lnames[li], true, t0, delay);
 				if (delay > 0) {
 					t1 = Date.now();
 					if ((t1- t0) > delay) {

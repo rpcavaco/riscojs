@@ -341,7 +341,6 @@ function MapLabelEngine(p_mapcontroller) {
 		};
 		out_return_obj.activestyle = null;
 		out_return_obj.perattribute = null;
-		out_return_obj.permode = null;
 		out_return_obj.placementtype = null;
 		
 		if (opt_style)
@@ -363,7 +362,6 @@ function MapLabelEngine(p_mapcontroller) {
 			} else if (this.lconfig[layername]["condstyle"] !== undefined && this.lconfig[layername]["condstyle"] != null) {
 				selstyle = clone(this.lconfig[layername]["condstyle"]["default"]);
 				out_return_obj.perattribute = clone(this.lconfig[layername]["condstyle"]["perattribute"]);
-				out_return_obj.permode = clone(this.lconfig[layername]["condstyle"]["permode"]);
 			}			
 		}
 		

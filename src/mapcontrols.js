@@ -7,8 +7,13 @@ function getOffset(p_element, out_list) {
 	
 	out_list.length = 2;
 	
-	let bodyRect = document.body.getBoundingClientRect(),
-    elemRect = p_element.getBoundingClientRect();
+	let elemRect, bodyRect = document.body.getBoundingClientRect();
+	try {
+		elemRect = p_element.getBoundingClientRect();
+	} catch(e) {
+		console.log(p_element);
+		console.error(e);
+	}
     // elemRect = p_element.parentElement.getBoundingClientRect();
     
     //console.log(String.format("offset e:{0}, b:{1}", elemRect.left, bodyRect.left));

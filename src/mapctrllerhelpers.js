@@ -913,13 +913,15 @@ function StyleVisibility(p_mapctrlr, p_config) {
 	this.styles = {};
 	this.stylecount = 0;
 	this.orderedindexes = [];
-	this.elementstats = {}; // contains a per-layer dict with arrays 
+	this.elementstats = {}; // contains a per-style index dict with arrays 
 		// carrying statistics: number of points, lines, polygons, 
 		// other and a sample of element labeling
 	this._layer_toc_entry = {}; // contains a a per-layer dict with 
 		// dicts with boolean attribute "visible" 
 		// Substituiu _visibilities
-	this.interactivities = {};
+
+	this.layer_to_tocentries = {}; // per layername dict
+	this.toc_entries = {}; // per style index dict
 	
 	this.widget_id = null;
 	this.maplyrconfig = p_config.lconfig;
@@ -954,7 +956,6 @@ function StyleVisibility(p_mapctrlr, p_config) {
 	};
 	
 	this.setWidgetId = function(p_widget_id) {
-		console.log("setWidgetId:", p_widget_id);
 		this.widget_id = p_widget_id;
 	};	
 	this.clearvis = function(p_hard) {
@@ -984,20 +985,82 @@ function StyleVisibility(p_mapctrlr, p_config) {
 			ret = this._layer_toc_entry[p_lname]["visible"];
 		}
 		return ret;
+		
+		const tocentries = this.layer_to_tocentries[p_lname];
+		
+		for (let ti=0; ti<tocentries.length; ti++) {
+			if (this.toc_entries[tocentries[ti]].visible) {
+				ret = true;
+				break;
+			}
+		}
+
+		return ret;
+		
 	};
+	this.isLyrTOCStyleVisibile = function(p_stdix) {
+		
+		const tocentries = this.layer_to_tocentries[p_lname];
+		let ret = false;
+		
+		for (let ti=0; ti<tocentries.length; ti++) {
+			if (this.toc_entries[tocentries[ti]].visible) {
+				ret = true;
+				break;
+			}
+		}
+
+		return ret;
+		
+	};
+	
 	this.isLyrTOCVisibilityTrueOrUndef = function(p_lname) {
+		
 		let ret = true;
 		if (this._layer_toc_entry[p_lname] !== undefined) {
 			ret = this._layer_toc_entry[p_lname]["visible"];
 		}
+
+		const tocentries = this.layer_to_tocentries[p_lname];
+		
+		if (tocentries !== undefined) {
+			ret = false;
+			for (let ti=0; ti<tocentries.length; ti++) {
+				if (this.toc_entries[tocentries[ti]].visible) {
+					ret = true;
+					break;
+				}
+			}
+		
+		}
+
 		return ret;
+		
+		
 	};
-	this.createLayerTOCEntry = function(p_lname) {
-		this._layer_toc_entry[p_lname] = { "visible": true, 
-			"available": false};
+	this.createLayerTOCEntry = function(p_lname, p_styidx) {
+		
+		if (this._layer_toc_entry[p_lname] === undefined) {
+			this._layer_toc_entry[p_lname] = { "visible": true };
+		}
+
+		if (this.layer_to_tocentries[p_lname] === undefined) {
+			this.layer_to_tocentries[p_lname] = [];
+		}
+		if (this.layer_to_tocentries[p_lname].indexOf(p_styidx) < 0) {
+			this.layer_to_tocentries[p_lname].push(p_styidx);
+		}
+		if (this.toc_entries[p_styidx] === undefined) {
+			this.toc_entries[p_styidx] = {
+				lname: p_lname, pt: 0, lin: 0, pol: 0, 
+				undef: 0, lblsample: null,
+				visible: true
+			};
+		}
 	};
-	this.toggleVisibility = function(p_lname) {
+	this.toggleVisibility = function(p_lname, p_style_index) {
 		let lviz = this.mapcontroller.checkLayerVisibility(p_lname);
+		//console.log("toggleVisibility, layer, viz:", p_lname, lviz, p_style_index);
 		//let ffound = this.mapcontroller.featuresFound(p_lname);
 		/*if (!lviz) {
 			aVISAR O UTILLIZADOR
@@ -1008,6 +1071,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 			return false;
 		}
 		this._layer_toc_entry[p_lname]["visible"] = !this._layer_toc_entry[p_lname]["visible"];
+		//console.log(" FINAl toggleVisibility, layer, viz:", p_lname, this._layer_toc_entry[p_lname]["visible"]);
 		return true;
 	};
 	this.holdVisibility = function(p_lname) {
@@ -1037,32 +1101,153 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		}	
 	};
 
-	this.getGeomType = function(p_idx) {
-		
-		let elidx, maxv=0, maxidx=-1, ret = "NONE";
-		if (this.elementstats[p_idx] !== undefined && this.elementstats[p_idx].length !== undefined) {
-			
-			for (elidx=0; elidx<4; elidx++) {
-				if (this.elementstats[p_idx][elidx] > maxv) {
-					maxv = this.elementstats[p_idx][elidx];
-					maxidx = elidx;
+	this.getGeomType = function(p_idx) {	
+	
+		let ret = (function(p_this) {
+			return Object.keys(p_this.toc_entries[p_idx]).reduce(function(a, b) {
+				let ret = null;
+				let va = p_this.toc_entries[p_idx][a];
+				let vb = p_this.toc_entries[p_idx][b];
+				if (va == 0 || va == null) { va = NaN };
+				if (vb == 0 || vb == null) { vb = NaN };
+				if (!isNaN(va) && !isNaN(vb)) {
+					ret = va > vb ? a : b;
+				} else if (isNaN(va) && isNaN(vb)) {
+					ret = null;
+				} else if (isNaN(va)) {
+					ret = b;
+				} else if (isNaN(vb)) {
+					ret = a;
 				}
+
+				return ret;
+			});
+		})(this);
+		
+		if (ret !== null) {
+			switch(ret) {
+				case 'pt':
+					ret = "POINT";
+					break;
+				case 'lin':
+					ret = "LINE";
+					break;
+				case 'pol':
+					ret = "POLY";
+					break;
+				default:
+					ret = "UNDEF";
+			}
+		}
+		
+		return ret;		
+	};
+	
+	this.getTotalFeatsPerIdx = function(p_idx) {
+
+		const lgtypes = ['pt', 'lin', 'pol'];
+		let ret = 0;
+		
+		for (let ti=0; ti<lgtypes.length; ti++) {
+			ret += this.toc_entries[p_idx][lgtypes[ti]];
+		}
+		
+		return ret;
+	};
+
+	this.getTotalFeatsPerLayer = function(p_lname) {
+		
+		const tocentries = this.layer_to_tocentries[p_lname];
+		let ret = 0;
+		
+		for (let ti=0; ti<tocentries.length; ti++) {
+			ret += this.getTotalFeatsPerIdx(tocentries[ti]);
+		}
+
+		return ret;
+	};
+	
+	this.genCanvasTOCElem = function(p_d, p_d2, p_backing_obj, p_cnvidx, p_legcell_dims, p_ismapvisible, p_layer_notviz_image_params, p_tcfn) {
+		
+		let canvasel, ctx, cnvidx = p_cnvidx + 1;
+		
+		if (!p_backing_obj.empty) {
+
+			// Legend symbol
+			canvasel = document.createElement('canvas');
+			canvasel.setAttribute('class', 'visctrl-classimg');
+			canvasel.setAttribute('id', 'cnv'+cnvidx);
+			canvasel.setAttribute('width', p_legcell_dims.w);
+			canvasel.setAttribute('height', p_legcell_dims.h);
+				
+			ctx = canvasel.getContext('2d');
+
+			console.log(" === START ===========================");
+			console.log("  LAYERNAME:", p_backing_obj.sty.lname);
+			console.log("  TOCVIZ:", this.isLyrTOCVisibile(p_backing_obj.sty.lname));
+			console.log("  gtype, isMapvisible:", p_backing_obj.gtype, p_ismapvisible);
+			console.log(" === END ===========================");
+
+			if (this.isLyrTOCVisibile(p_backing_obj.sty.lname) && p_ismapvisible && p_backing_obj.gtype != "NONE") {
+				layerActivateTOC(p_d, ctx, p_backing_obj.sty.style, p_backing_obj.gtype, p_backing_obj.sty.lname, this.mapcontroller.fillpatterns, p_backing_obj.lblsample, p_legcell_dims.w, p_legcell_dims.h );
+			} else {
+				layerDeactivateTOC(p_d, ctx, this.mapcontroller.fillpatterns, p_layer_notviz_image_params, p_legcell_dims.w, p_legcell_dims.h);
+			}
+			
+			if (p_tcfn != null && window[p_tcfn] !== undefined) {
+				(function(p_canvasel, p_func) {	
+					attEventHandler(p_canvasel, 'click',
+						function(evt) { window[p_func](false); }
+					);
+				})(canvasel,p_tcfn);
+			} else {
+				(function(p_self, p_canvasel, p_lname, p_styindex) {						
+					attEventHandler(p_canvasel, 'click',
+						function(evt) {
+							console.log("p_lname:", p_lname, p_styindex);
+							if (p_self.toggleVisibility(p_lname, p_styindex)) {
+								p_self.mapcontroller.redraw(false, null, null, true);
+								p_self.mapcontroller.onChangeFinish("toggleTOC");
+							} 
+						}
+					);
+				})(this, canvasel, p_backing_obj.sty.lname, p_backing_obj.sty._index);
 			}
 
-			if (maxidx >= 0) {
-				switch(maxidx) {
-					case 0:
-						ret = "POINT";
-						break;
-					case 1:
-						ret = "LINE";
-						break;
-					case 2:
-						ret = "POLY";
-				}
-			}
-		}		
-		return ret;	
+			/*
+			(function(p_self, p_canvasel, p_styleobj, p_lname) {						
+				attEventHandler(p_canvasel, 'mouseover',
+					function(evt) {
+						var objectoids = p_self.mapcontroller.perattribute_indexing.get(p_lname, p_styleobj._index);
+						var inscreenspace = true;
+						var dlayer = 'transient';
+						if (objectoids) {
+							p_self.mapcontroller.clearTransient();
+							for (var oidx=0; oidx<objectoids.length; oidx++) {
+								// TODO - passar para init / app.js
+								p_self.mapcontroller.drawSingleFeature(p_lname, objectoids[oidx], inscreenspace, dlayer,  
+											{										
+												"strokecolor": 'cyan',
+												"linewidth": 3,
+												"shadowcolor": "#000",
+												"shadowoffsetx": 2,
+												"shadowoffsety": 2,
+												"shadowblur": 2
+											}, null, true, null,						
+											false);	
+							}
+						}
+
+					}
+				);
+			})(this, canvasel, p_backing_obj.sty.style, p_backing_obj.sty.lname);
+			*/
+
+			p_d2.appendChild(canvasel);
+			
+		}
+	
+		return cnvidx;
 	};
 	
 	this.updateWidget = function(p_title_caption_key, p_i18n_function) {
@@ -1071,15 +1256,16 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		let oidx;
 		let t, r, pd, d, d2, w, x, capparent, sty, lyrtitle, gtype=null, tmpgtype;
 		let currlayercaption = null;
-		let lname, transients_found = 0, labelkey_found, possibly_emptysubentries_oidx, additions_to_backingobj;
+		let lname, transients_found = 0, labelkey_found, possibly_emptysubentries_oidx;
 		let topPadLayerHeading = '6px';
 		let botPadLayerHeading = '4px';
 		let ordredstyles = [];
 		let dobreak = false;
 		let isMapVisible = false;
-		let lnamesidx = 0, backobjidx = 0;
+		let lnamesidx = 0;
 		let lentries_count = 0;
 		let thematic_widget = null;
+		const do_debug = true;
 		
 		let legend_control_defaults = this.mapcontroller.legend_control_defaults;
 		let layer_notviz_image_params = this.mapcontroller.layer_notviz_image_params;
@@ -1087,13 +1273,11 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		let items = 0, cnvidx = -1, legendcaption_created=false;
 		let leg_par, legp_style, leg_tmp_elem, leg_tmp_style;
 		
-		let leg_dims = { rows:0, cols:0 };
+		let leg_dims = { cols:0 };
 
 		const legcfg = this.mapcontroller.mapctrlsmgr.legendcfg;		
 		const visibility_widget = document.getElementById(legcfg.visibility_widget_name);
 		const legend_ctrl = visibility_widget.parentNode;
-		
-		console.log("===== ENTRADA =========== updateWidget ===========");
 		
 		if (legend_control_defaults.entrywidth === undefined) {
 			leg_tmp_elem = document.querySelector(String.format('#{0} td', legcfg.visibility_widget_name));
@@ -1111,10 +1295,9 @@ function StyleVisibility(p_mapctrlr, p_config) {
 				legend_control_defaults.height = parseInt(leg_tmp_style.getPropertyValue('height'));		
 			}
 		}
-
+		
 		if (legend_control_defaults.width === undefined) {
-			legend_control_defaults.width = legcfg.legcell_dims.w;
-		} else {
+			legend_control_defaults.width = 5 * legcfg.legcell_dims.w;
 			leg_tmp_elem = document.getElementById('legendctrl');
 			if (leg_tmp_elem) {
 				leg_tmp_elem.style.width = legend_control_defaults.width + 'px';
@@ -1142,18 +1325,22 @@ function StyleVisibility(p_mapctrlr, p_config) {
 				ordredstyles.length = 0;
 				transients_found = 0;
 				labelkey_found = false;
-				possibly_emptysubentries_orderedstylesidx = -1;
+				stylesindexes_missing_labelkey = [];
 				thematic_widget = null;
-				additions_to_backingobj = 0; // additions to backing object from JUST this layer
+				lyrtitle = "";
+				additions_to_backobj = 0;
 				
 				if (this.styles[lname] !== undefined) {
 					
-					console.log("  == layer com "+this.styles[lname].length+" estilos:", lname);
+					if (do_debug) {
+						console.log("[UPD TOC] layer", lname, ", cont.styles:"+this.styles[lname].length);
+					}
 
-					for (var k=0; k<this.styles[lname].length; k++) {
+					for (let k=0; k<this.styles[lname].length; k++) {
 
 						sty = clone(this.styles[lname][k]);
 						if (sty == null) {
+							console.warn("[UPD TOC] style", k, "in", lname, "is null");
 							continue;
 						}
 
@@ -1170,25 +1357,24 @@ function StyleVisibility(p_mapctrlr, p_config) {
 							sty["thematic_control"] = thematic_widget["ctrl"];
 						}
 
-						// cleanup previous styles for empty symbology classes 
-						/*if (this.elementstats[sty._index] !== undefined && ((this.elementstats[sty._index][0] + this.elementstats[sty._index][1] + this.elementstats[sty._index][2]) == 0)) {
-							console.log("SAIR 1118 lyr:"+lname);
-							//continue;
-						} */
-
 						if (sty['transient'] !== undefined && sty['transient']) {
 							transients_found++;
 						}
-						if (sty["lyrlabelkey"] !== undefined && sty["lyrlabelkey"].length > 0) {
-							lyrtitle = p_i18n_function(sty["lyrlabelkey"]);
+						
+						if (!labelkey_found) {
+							if (sty["lyrlabelkey"] !== undefined && sty["lyrlabelkey"].length > 0) {
+								lyrtitle = p_i18n_function(sty["lyrlabelkey"]);
+							}
+							if ((sty["lyrlabelkey"] !== undefined && sty["lyrlabelkey"].length > 0) || 
+									(sty.style !== undefined && sty.style["labelkey"] !== undefined && sty.style["labelkey"].length > 0)
+								) {
+									labelkey_found = true;
+							}	
 						}
-						if (!labelkey_found && ((sty["lyrlabelkey"] !== undefined && sty["lyrlabelkey"].length > 0) || 
-								(sty.style !== undefined && sty.style["labelkey"] !== undefined && sty.style["labelkey"].length > 0)
-							)) {
-								labelkey_found = true;
-						}				
-						//console.log("pushing", lname, "lyrtitle:", lyrtitle, sty);
 
+						if (do_debug) {
+							console.log("[UPD TOC] layer", lname, ", pushing style index", sty._index, "into styleorder, layertitle:", lyrtitle);
+						}
 						ordredstyles.push([sty._index, sty]);
 					}
 						
@@ -1204,10 +1390,9 @@ function StyleVisibility(p_mapctrlr, p_config) {
 					if (!this.isLyrTOCVisibile(lname) || !isMapVisible || gtype == "NONE") {
 						// if layer style was dinamically added and is now deactivated, don't create TOC entry				
 						 if (ordredstyles.length > 0 && ordredstyles.length == transients_found) {
-							/* console.log(ordredstyles);
-							console.log(transients_found);
-							console.log(this.styles[lname]);
-							console.warn("SAIDA 2: layer "+lname+" TRANSIENTE"); */
+							if (do_debug) {
+								console.log("[UPD TOC] layer", lname, ", removing TOC entry (presum. dynamic. added at first and then deactivated)");
+							}
 							continue;
 						}
 					}
@@ -1215,59 +1400,52 @@ function StyleVisibility(p_mapctrlr, p_config) {
 					// if no features found, don't create  TOC entry
 					let fc = this.mapcontroller.featuresFound(lname);
 					if (fc < 1) {
-						console.warn("SAIDA 3: layer "+lname+" SEM FEATS");
+						console.warn("[UPD TOC] layer", lname, ", removing TOC entry - no features found");
 						continue;
-					}	
-					
-					console.log("fc:", fc, "ordredstyles:",  ordredstyles.length, JSON.stringify(ordredstyles));
-					
+					}
+
+					if (do_debug) {
+						console.log("[UPD TOC] layer", lname, ", ordered styles count", ordredstyles.length);
+					}
+
 					if (ordredstyles.length > 1) {
 						
-						let first_label_is_written = false;
 						for (var j=0; j<ordredstyles.length; j++) {
 							
 							oidx = ordredstyles[j][0];
 							sty = ordredstyles[j][1];
 							
-							console.log(lname, Object.keys(sty));
-							console.log(Object.keys(sty.style));
-
 							tmpgtype = this.getGeomType(oidx);	
 							if (gtype == null || tmpgtype != "NONE") {
 								gtype = tmpgtype;
 							}
 													
 							if (Object.keys(this.elementstats).indexOf(oidx.toString()) < 0) {
-								//console.log("SAIR A lname:"+lname+" oidx:"+oidx+" not in elementstats");
+								if (do_debug) {
+									console.log("[UPD TOC] layer", lname, ", sty.index", oidx, "not in these elementstats:", Object.keys(this.elementstats));
+								}
 								continue;
 							}
 							
 							let isMapVisible = this.mapcontroller.checkLayerVisibility(sty.lname);
 
 							if (!this.isLyrTOCVisibile(sty.lname) || !isMapVisible || gtype == "NONE") {
-							//if (!isMapVisible || gtype == "NONE") {
-								// if layer style was dinamically added and is now deactivated, don't create TOC entry							
 								 if (sty['transient'] !== undefined && sty['transient']) {
-									//console.log("SAIR B lname:"+lname+" oidx:"+oidx+" TRANSIENTE");
+									if (do_debug) {
+										console.log("[UPD TOC] layer", lname, ", sty.index", oidx, "transient, not for TOC");
+									}
 									continue;
 								}
 							}
 							
-							console.log(1261, sty.lname, oidx);
-							
 							if ((sty["lyrlabelkey"] === undefined || sty["lyrlabelkey"].length < 1) && 
 									(sty.style["labelkey"] === undefined || sty.style["labelkey"].length < 1)
 								) {
-									//console.log("SAIR C lname:"+lname+" oidx:"+oidx+" SEM LBLKEY");
+									if (do_debug) {
+										console.log("[UPD TOC] layer", lname, ", sty.index", oidx, "no 'labelkey' (and also no layer label key)");
+									}
 									continue;
 							}
-							
-							/*
-							if ((this.elementstats[oidx][0] + this.elementstats[oidx][1] + this.elementstats[oidx][2]) == 0) {
-								console.log("SAIR lname:"+lname+" oidx:"+oidx+" SEM FEATS");
-								continue;
-							}
-							* */
 							
 							if (sty["lyrlabelkey"] !== undefined && sty["lyrlabelkey"].length > 0) {
 								lyrtitle = p_i18n_function(sty["lyrlabelkey"]);
@@ -1275,21 +1453,17 @@ function StyleVisibility(p_mapctrlr, p_config) {
 
 							if (sty.style["labelkey"] !== undefined) {
 								
-								if (!first_label_is_written) {
-									backing_obj.empty = false;
+								if (additions_to_backobj == 0 && lyrtitle.length > 0) {
 									backing_obj.lbl = lyrtitle;
 									backing_obj.lblstyle = 'ENTRY';
 									backing_obj.colspan = 2;
-									backing_obj.lblsample = null;
-									backing_obj.gtype = gtype;
-									backing_obj.sty = sty;
+									backing_obj.lblsample = backing_obj.sty = null;
+									backing_obj.gtype = null;
 									backing_obj.grpbndry = 'START';
 									backing_obj_arr.push(clone(backing_obj));
-									additions_to_backingobj++;
-									first_label_is_written = true;
+									additions_to_backobj++;
 								}
 								
-								backing_obj.empty = false;
 								if (sty.style["labelvalue"] !== undefined && sty.style["labelvalue"] != null) {
 									const fmts = p_i18n_function(sty.style["labelkey"]);
 									const val = sty.style["labelvalue"];
@@ -1308,11 +1482,11 @@ function StyleVisibility(p_mapctrlr, p_config) {
 								backing_obj.sty = sty;
 								backing_obj.grpbndry = 'NONE';
 								backing_obj_arr.push(clone(backing_obj));	
-								additions_to_backingobj++;
+								additions_to_backobj++;
 							
 							} else {
 
-								possibly_emptysubentries_orderedstylesidx = j;
+								stylesindexes_missing_labelkey.push(j);
 
 							}
 						}	// for (var j=0; j<ordredstyles.length; j++) {
@@ -1327,7 +1501,6 @@ function StyleVisibility(p_mapctrlr, p_config) {
 							gtype = tmpgtype;
 						}
 
-						backing_obj.empty = false;
 						backing_obj.lbl = lyrtitle;
 						backing_obj.lblstyle = 'ENTRY';
 						backing_obj.colspan = 1;
@@ -1336,36 +1509,42 @@ function StyleVisibility(p_mapctrlr, p_config) {
 						backing_obj.sty = sty;
 						backing_obj.grpbndry = 'NONE';
 						backing_obj_arr.push(clone(backing_obj));
-						additions_to_backingobj++;
-					//} else {
-						//console.log("SAIR D lname:"+lname+" no orderedstyles:"+ordredstyles.length);
+						additions_to_backobj++;
 					}
 
-					if (possibly_emptysubentries_orderedstylesidx >= 0 && additions_to_backingobj==0) {
-
-						let _oidx = ordredstyles[possibly_emptysubentries_orderedstylesidx][0];
-						let _sty = ordredstyles[possibly_emptysubentries_orderedstylesidx][1];
-						_sty['transient'] = false;
-
-						backing_obj.empty = false;
-						backing_obj.lbl = lyrtitle;
-						backing_obj.lblstyle = 'ENTRY';
-						backing_obj.colspan = 1;
-						backing_obj.lblsample = this.elementstats[_oidx][4];
-						backing_obj.gtype = gtype;
-						backing_obj.sty = _sty;
-						backing_obj.grpbndry = 'NONE';
-						backing_obj_arr.push(clone(backing_obj));
-						additions_to_backingobj++;
+					if (do_debug && stylesindexes_missing_labelkey.length > 0) {
+						console.log("[UPD TOC] layer", lname, "sty.indexes without label key:", stylesindexes_missing_labelkey);
 					}
-//				} else {
-//console.log("SAIR E lname:"+lname+" no labelkey");
-				} // if (labelkey_found)
+
+					if (stylesindexes_missing_labelkey.length > 0 && backing_obj_arr.length==0) {
+						
+						for (let _oidx, _sty, siml_idx=0; siml_idx<stylesindexes_missing_labelkey.length; siml_idx++) {
+
+							_oidx = ordredstyles[siml_idx][0];
+							_sty = ordredstyles[siml_idx][1];
+							_sty['transient'] = false;
+
+							backing_obj.lbl = lyrtitle;
+							backing_obj.lblstyle = 'ENTRY';
+							backing_obj.colspan = 1;
+							backing_obj.lblsample = this.elementstats[_oidx][4];
+							backing_obj.gtype = gtype;
+							backing_obj.sty = _sty;
+							backing_obj.grpbndry = 'NONE';
+							backing_obj_arr.push(clone(backing_obj));
+							additions_to_backobj++;
+						
+						}
+					}
+				} else { // if (labelkey_found)
+					if (do_debug) {
+						console.log("[UPD TOC] layer", lname, "NO TOC label");
+					}				
+				}
 
 				// If this layer was not added to backing object and has thematic widget,
 				// a dummy style is added to provide a TOC entry with invisibility symbol
-				if (thematic_widget != null && additions_to_backingobj==0) {
-
+				if (thematic_widget != null && backing_obj_arr.length==0) {
 					let _sty = thematic_widget["styleobj"];
 					let _lbs = thematic_widget["lblsample"];
 
@@ -1374,8 +1553,6 @@ function StyleVisibility(p_mapctrlr, p_config) {
 					} else {
 						lyrtitle = "";
 					}
-
-					backing_obj.empty = false;
 					backing_obj.lbl = lyrtitle;
 					backing_obj.lblstyle = 'ENTRY';
 					backing_obj.colspan = 1;
@@ -1384,11 +1561,10 @@ function StyleVisibility(p_mapctrlr, p_config) {
 					backing_obj.sty = _sty;
 					backing_obj.grpbndry = 'NONE';
 					backing_obj_arr.push(clone(backing_obj));
-					additions_to_backingobj++;
+					additions_to_backobj++;
 				}
 				
 			} // for (lnamesidx=(this.maplyrnames.length-1); lnamesidx>=0; lnamesidx--) {
-
 
 			// Ensure group boundaries are properly closed
 			for (var bi=1; bi<backing_obj_arr.length; bi++) {				
@@ -1396,67 +1572,37 @@ function StyleVisibility(p_mapctrlr, p_config) {
 				backing_obj_arr[bi-1].lblstyle == 'SUBENTRY') {
 					backing_obj_arr[bi-1].grpbndry = 'STOP';
 				}				
-			}
-			
+			}			
 			if (backing_obj_arr[backing_obj_arr.length-1] !== undefined) {
 				if (backing_obj_arr[backing_obj_arr.length-1].lblstyle == 'SUBENTRY') {
 					backing_obj_arr[backing_obj_arr.length-1].grpbndry = 'STOP';
 				}	
 			}	
 			
+			let leg_prevcols = 0;
 			let cols = 1; 			
 			while ( ((backing_obj_arr.length * legcfg.elem_height) * 1.0 / cols) > legend_control_defaults.height && cols < legcfg.max_cols ) {
 				cols++;
 			}			
 			leg_dims.cols = cols;
-			leg_dims.rows = Math.ceil(backing_obj_arr.length / cols);
-
-			let new_backing_obj_arr = [];
-			let leg_prevcols = 0;
-
-			while (leg_dims.cols > leg_prevcols) {
-				leg_prevcols = leg_dims.cols;
-				if (leg_dims.cols > 1) {
-					new_backing_obj_arr.length = 0;
-					for (var boi=0; boi<backing_obj_arr.length; boi++) {
-						backing_obj = backing_obj_arr[boi];
-						bo_off = (new_backing_obj_arr.length-1) % leg_dims.cols;
-						if (backing_obj.grpbndry == 'START') {
-							// antes
-							if (boi > 0) {
-								for (var k=boi; k<leg_dims.cols; k++) {
-									new_backing_obj_arr.push({ empty: true, colspan: 1, est:'antes' }); 
-								}
-							}
-							new_backing_obj_arr.push(backing_obj);
-							// depois
-							for (var k=1; k<leg_dims.cols; k++) {
-								new_backing_obj_arr.push({ empty: true, colspan: 1, est:'depois' }); 
-							}
-						}  else {
-							new_backing_obj_arr.push(backing_obj);
-						}
-					}
-					backing_obj_arr = clone(new_backing_obj_arr);
-					p_floating_widgets_mgr.calcLegSize(backing_obj_arr.length, leg_dims);
-				}
-			} // while (leg_dims.cols > leg_prevcols)
-
-			currlayercaption = null;		
-			let paddingval;
+			currlayercaption = null;
 			
+			let paddingval, minwidth;			
 			leg_container = document.getElementById(this.widget_id);
-			if (leg_container) {
+			if (leg_container != null && backing_obj_arr.length>0) {
 				
 				leg_par = leg_container.parentNode;
 				
 				if (leg_par && leg_dims.cols > 1) {
 					legp_style = window.getComputedStyle(leg_par);
-					//prev_legp_width = legp_style.getPropertyValue('width');		
 					paddingval = parseInt(legp_style.getPropertyValue('padding-left'));		
 					paddingval += parseInt(legp_style.getPropertyValue('padding-right'));	
 					
-					leg_par.style.width = ((LEGEND_CONTROL_DEFAULTS.entrywidth * leg_dims.cols) + paddingval) + 'px';
+					// guarantee min width for TOC / legend
+					minwidth = (legend_control_defaults.entrywidth * leg_dims.cols) + paddingval;					
+					if (parseInt(leg_par.style.width) < minwidth) {					
+						leg_par.style.width = minwidth + 'px';					
+					}
 				}
 
 				while (leg_container.firstChild) {
@@ -1472,206 +1618,69 @@ function StyleVisibility(p_mapctrlr, p_config) {
 				capparent = document.createElement("p");	
 				d.appendChild(capparent);
 				
-				backobjidx = -1;	
-				
-				let tcid, tcfn, opener_evt_attached = false;
-				
-				dobreak = false;
-				for (var ri=0; ri<leg_dims.rows; ri++) {
-
-					for (var ci=0; ci<leg_dims.cols; ci++) {
+				let tcid, tcfn, opener_evt_attached = false;				
+				for (let currcol=0, bi=0; bi<backing_obj_arr.length; bi++) {
 					
-						backobjidx++;
-						tcfn = null;
-						if (backobjidx >= backing_obj_arr.length) {
-							
-							// Se já não houver backobj's para preencher as colunas seguintes, 
-							// criar células de tabela vazias para completar o espaço ainda disponível.
+					if (!legendcaption_created) {
+						createTitleCaption(capparent, p_title_caption_key);
+						legendcaption_created = true;
+					}
 
-							d = document.createElement("td");	
-							r.appendChild(d);				
-								
-							if (backing_obj.colspan == 2) {		
-								d.insertAdjacentHTML('afterbegin', '&nbsp;');					
-								d.colSpan = 2;
-							}	else {
-								d.insertAdjacentHTML('afterbegin', '&nbsp;');					
-							}
-
-							d = document.createElement("td");	
-							r.appendChild(d);												
-							d.insertAdjacentHTML('afterbegin', '&nbsp;');					
-							
-							dobreak = true;
-							continue;
-						}
-
-						lname = this.maplyrnames[lnamesidx];
-						backing_obj = backing_obj_arr[backobjidx];
-						
-						if (!legendcaption_created) {
-							createTitleCaption(capparent, p_title_caption_key);
-							legendcaption_created = true;
-						}
-
-						if (ci==0 || backing_obj.grpbndry == "START") {
-							r = document.createElement("tr");	
-							t.appendChild(r);	
-						}					
-
-						d = document.createElement("td");	
-						r.appendChild(d);				
-						
-						if (backing_obj.sty !== undefined && backing_obj.sty["thematic_control"] != null) {
-							tcid = backing_obj.sty["thematic_control"]+"_opener";
-							if (backing_obj.lblstyle == "SUBENTRY") {
-								d.insertAdjacentHTML('afterbegin', (backing_obj.lbl ? backing_obj.lbl : ""));
-							} else {
-								d.insertAdjacentHTML('afterbegin', String.format("<span class='click' id='{0}'>{1}</span>", tcid, backing_obj.lbl));
-							}
-							tcfn = backing_obj.sty["thematic_control"]+"_opener_fn";
-							if (window[tcfn] !== undefined && !opener_evt_attached) {
-									attEventHandler(tcid, 'click',
-										function(evt) { window[tcfn](false); }
-									);
-									opener_evt_attached = true;
-							}
-						} else {
+					backing_obj = backing_obj_arr[bi];
+					
+					if (backing_obj.grpbndry == "START" || backing_obj.colspan > leg_dims.cols-currcol) {
+						r = document.createElement("tr");	
+						t.appendChild(r);
+						currcol = 0;						
+					}
+					
+					d = document.createElement("td");	
+					r.appendChild(d);				
+					
+					if (backing_obj.sty !== undefined && backing_obj.sty != null && backing_obj.sty["thematic_control"] != null) {
+						tcid = backing_obj.sty["thematic_control"]+"_opener";
+						if (backing_obj.lblstyle == "SUBENTRY") {
 							d.insertAdjacentHTML('afterbegin', (backing_obj.lbl ? backing_obj.lbl : ""));
+						} else {
+							d.insertAdjacentHTML('afterbegin', String.format("<span class='click' id='{0}'>{1}</span>", tcid, backing_obj.lbl));
 						}
-														
-						if (backing_obj.colspan == 2) {							
-							d.colSpan = 2 * leg_dims.cols;
-						}	
-						
-						if (backing_obj.grpbndry == "START") {
-							setClass(d, "topbar");
-						} else if (backing_obj.grpbndry == "STOP") {
-							setClass(r, "bottombar");
+						tcfn = backing_obj.sty["thematic_control"]+"_opener_fn";
+						if (window[tcfn] !== undefined && !opener_evt_attached) {
+								attEventHandler(tcid, 'click',
+									function(evt) { window[tcfn](false); }
+								);
+								opener_evt_attached = true;
 						}
-						
-						if (backing_obj.lblstyle == "ENTRY") {
-							if (backing_obj.colspan == 2) {
-								setClass(d, "visctrl-titleentry");
-							} else {
-								setClass(d, "visctrl-entry");
-							}
-						} else if (backing_obj.lblstyle == "SUBENTRY") {
-							setClass(d, "visctrl-subentry")
-						}
-							
-						if (backing_obj.colspan == 1) {
-							
-							d2 = document.createElement("td");	
-							r.appendChild(d2);				
-
-							if (backing_obj.grpbndry == "STOP") {
-								setClass(r, "bottombar");
-							}
-
-							let w = legcfg.legcell_dims.w, h = legcfg.legcell_dims.h;
-							
-							if (!backing_obj.empty) {
-
-								cnvidx++;
-								// Legend symbol
-								canvasel = document.createElement('canvas');
-								canvasel.setAttribute('class', 'visctrl-classimg');
-								canvasel.setAttribute('id', 'cnv'+cnvidx);
-								canvasel.setAttribute('width', w);
-								canvasel.setAttribute('height', h);
-									
-								let ctx = canvasel.getContext('2d');
-
-								//console.log([backing_obj.sty.lname, this.isLyrTOCVisibile(backing_obj.sty.lname), gtype, isMapVisible]);
-								if (this.isLyrTOCVisibile(backing_obj.sty.lname) && isMapVisible && gtype != "NONE") {
-									layerActivateTOC(d, ctx, backing_obj.sty.style, backing_obj.gtype, backing_obj.sty.lname, this.mapcontroller.fillpatterns, backing_obj.lblsample, w, h );
-								} else {
-									layerDeactivateTOC(d, ctx, this.mapcontroller.fillpatterns, layer_notviz_image_params, w, h);
-								}
-								
-								if (tcfn != null && window[tcfn] !== undefined) {
-									(function(p_canvasel, p_func) {	
-										attEventHandler(p_canvasel, 'click',
-											function(evt) { window[p_func](false); }
-										);
-									})(canvasel,tcfn);
-									(function(p_self, p_canvasel, p_styleobj, p_lname) {						
-										attEventHandler(p_canvasel, 'mouseover',
-											function(evt) {
-												var objectoids = p_self.mapcontroller.perattribute_indexing.get(p_lname, p_styleobj._index);
-												var inscreenspace = true;
-												var dlayer = 'transient';
-												if (objectoids) {
-													p_self.mapcontroller.clearTransient();
-													for (var oidx=0; oidx<objectoids.length; oidx++) {
-														// TODO - passar para init / app.js
-														p_self.mapcontroller.drawSingleFeature(p_lname, objectoids[oidx], inscreenspace, dlayer,  
-																	{										
-																		"strokecolor": 'cyan',
-																		"linewidth": 3,
-																		"shadowcolor": "#000",
-																		"shadowoffsetx": 2,
-																		"shadowoffsety": 2,
-																		"shadowblur": 2
-																	}, null, true, null,						
-																	false);	
-													}
-												}
-
-											}
-										);
-									})(this, canvasel, backing_obj.sty.style, backing_obj.sty.lname);
-								} else {
-									(function(p_self, p_canvasel, p_lname) {						
-										attEventHandler(p_canvasel, 'click',
-											function(evt) {
-												if (p_self.toggleVisibility(p_lname)) {
-													p_self.mapcontroller.redraw(false, null, null, true);
-													p_self.mapcontroller.onChangeFinish("toggleTOC");
-												} 
-											}
-										);
-									})(this, canvasel, backing_obj.sty.lname);
-								}
-
-								d2.appendChild(canvasel);
-								
-							}
-							
-						}
-						
+					} else {
+						d.insertAdjacentHTML('afterbegin', (backing_obj.lbl ? backing_obj.lbl : ""));
 					}
-					
-					if (dobreak) {
-						break;
+
+					if (backing_obj.lblstyle == "ENTRY") {
+						setClass(d, "visctrl-entry");
+					} else if (backing_obj.lblstyle == "SUBENTRY") {
+						setClass(d, "visctrl-subentry")
 					}
-				}
-				
+
+					if (backing_obj.colspan > 1) {
+						d.colSpan = backing_obj.colspan * leg_dims.cols;
+					} else {
+						// espaço simbolo
+						d2 = document.createElement("td");	
+						r.appendChild(d2);
+						cnvidx = this.genCanvasTOCElem(d, d2, backing_obj, cnvidx, legcfg.legcell_dims, isMapVisible, layer_notviz_image_params, tcfn);
+					}					
+					currcol = currcol + backing_obj.colspan;											
+				}									
 				leg_par.style.removeProperty('visibility');
-			} // if (leg_container) {
-			
-			if (typeof STATIC_LEGEND == 'undefined' || !STATIC_LEGEND) {
-				if (!legendcaption_created && capparent!=null && capparent.parentElement !== undefined) {
-				let count = 8, pe = capparent;
-				while (count > 0 && pe != null && (pe.tagName.toLowerCase() != 'div' || this.widget_id == pe.id)) {
-					pe = pe.parentElement;
-					count--;
-				}
-				if (pe.tagName.toLowerCase() == 'div') {
-						console.log(pe.id);
-					pe.style.visibility = "hidden";
-					}
-				}
-			}
-			
-		} // if (this.widget_id) {
-		
-		console.log("===== SAIDA =========== updateWidget ===========");
-		
+			} // if (leg_container) {			
+		} // if (this.widget_id) {		
 	};
 
 	this.incrementElemStats = function(p_gtype, p_style_obj, p_layername, opt_increment, opt_lblsample) {
+
+	//this.layer_to_tocentries = {}; // per layername dict
+	//this.toc_entries = {}; // per style index dict
+
 		
 		let idx, inc;	
 		if (opt_increment) {
@@ -1691,9 +1700,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 					break;
 				}
 			}
-			
-			//console.log([p_layername, idx, found]);
-			
+
 			if (!found) {
 				this.styles[p_layername].push({
 						"transient": true, 
@@ -1707,22 +1714,28 @@ function StyleVisibility(p_mapctrlr, p_config) {
 			if (this.orderedindexes.indexOf(idx) < 0) {
 				this.orderedindexes.push(idx);
 			}
+			console.assert(this.toc_entries[idx] !== undefined, String.format("Missing toc_entry {0}, wasn't properly created in StyleVisibility.createLayerTOCEntry",idx));
 			if (this.elementstats[idx] === undefined) {
 										/* point, line, poly, undefined */
 				this.elementstats[idx] = [0,0,0,0, null];
 			}
-
+			
 			if (p_gtype.toUpperCase() == "POINT") {
 				this.elementstats[idx][0] = this.elementstats[idx][0] + inc;
+				this.toc_entries[idx].pt =  this.toc_entries[idx].pt + inc;
 				if (opt_lblsample) {
 					this.elementstats[idx][4] = opt_lblsample;
+					this.toc_entries[idx].lblsample = opt_lblsample;
 				}
 			} else if (p_gtype.toUpperCase() == "LINE") {
 				this.elementstats[idx][1] = this.elementstats[idx][1] + inc;
+				this.toc_entries[idx].lin =  this.toc_entries[idx].lin + inc;
 			} else if (p_gtype.toUpperCase() == "POLY") {
 				this.elementstats[idx][2] = this.elementstats[idx][2] + inc;
+				this.toc_entries[idx].pol =  this.toc_entries[idx].pol + inc;
 			} else {
 				this.elementstats[idx][3] = this.elementstats[idx][3] + inc;
+				this.toc_entries[idx].undef =  this.toc_entries[idx].undef + inc;
 			}
 		}	
 	};
@@ -1739,8 +1752,8 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		lc = this.maplyrconfig[k_lname];
 		if (lc["style"] !== undefined && lc["style"] != null) {
 			lc["style"]["_index"] = this.stylecount;				
+			this.createLayerTOCEntry(k_lname, this.stylecount);
 			this.stylecount++;
-			this.createLayerTOCEntry(k_lname);
 			if (this.styles[k_lname] === undefined) {
 				this.styles[k_lname] = [];
 			}
@@ -1754,14 +1767,17 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		} else if (lc["condstyle"] !== undefined && lc["condstyle"] != null) {
 			
 			cs = lc["condstyle"];
-			this.createLayerTOCEntry(k_lname);
 			if (this.styles[k_lname] === undefined) {
 				this.styles[k_lname] = [];
 			}
 
 			for (let k_cstype in cs) {
+				if (!cs.hasOwnProperty(k_cstype)) {
+					continue;
+				}
 				if (k_cstype == "default") {
 					cs[k_cstype]["_index"] = this.stylecount;
+					this.createLayerTOCEntry(k_lname, this.stylecount);
 					this.stylecount++;
 					this.styles[k_lname].push({
 							"lname": k_lname,
@@ -1770,18 +1786,6 @@ function StyleVisibility(p_mapctrlr, p_config) {
 							"thematic_control": (lc["thematic_control"] !== undefined ? lc["thematic_control"] : null),
 							"style": clone(cs[k_cstype])
 						});
-				} else if (k_cstype == "permode") {
-					for (let k_attrname in cs[k_cstype]) {
-						cs[k_cstype][k_attrname]["_index"] = this.stylecount;
-						this.stylecount++;
-						this.styles[k_lname].push({
-								"lname": k_lname,
-								"_index": cs[k_cstype][k_attrname]["_index"],
-								"lyrlabelkey": (lc["labelkey"] !== undefined ? lc["labelkey"] : ""),
-								"thematic_control": (lc["thematic_control"] !== undefined ? lc["thematic_control"] : null),
-								"style": clone(cs[k_cstype][k_attrname])
-							});
-					}
 				} else if (k_cstype == "perattribute") {
 					for (let k_attrname in cs[k_cstype]) {
 						if (k_attrname == "_#ALL#_") {
@@ -1789,6 +1793,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 						}
 						for (let i_class = 0; i_class < cs[k_cstype][k_attrname].length; i_class++) {
 							cs[k_cstype][k_attrname][i_class]["style"]["_index"] = this.stylecount;
+							this.createLayerTOCEntry(k_lname, this.stylecount);
 							this.stylecount++;
 							this.styles[k_lname].push({
 									"lname": k_lname,
@@ -1804,27 +1809,48 @@ function StyleVisibility(p_mapctrlr, p_config) {
 
 		//} else if (lc["label"] !== undefined && lc["label"] != null && lc["label"]["style"] !== undefined && lc["label"]["style"] != null ) {
 			//this.changeVisibility(k_lname, true);
-		} else if (lc["markerfunction"] !== undefined && lc["markerfunction"] != null) {
-			this.createLayerTOCEntry(k_lname);
-		} else if (lc["label"] !== undefined && lc["label"] != null && lc["label"]["style"] !== undefined && lc["label"]["style"] != null ) {
-
-			lc["label"]["style"]["_index"] = this.stylecount;				
-			this.stylecount++;
+		/* } else if (lc["markerfunction"] !== undefined && lc["markerfunction"] != null) {
+			
+			console.log(k_lname);
+			cs = lc["condstyles"];
 			this.createLayerTOCEntry(k_lname);
 			if (this.styles[k_lname] === undefined) {
 				this.styles[k_lname] = [];
 			}
+			
+			for (let i=0; i<cs.length; i++) {
+
+				cs[i]["_index"] = this.stylecount;
+				this.stylecount++;
+				this.styles[k_lname].push({
+					"lname": k_lname,
+					"_index": cs[i]["_index"],
+					"lyrlabelkey": (lc["lyrlabelkey"] !== undefined ? lc["lyrlabelkey"] : (lc["labelkey"] !== undefined ? lc["labelkey"] : "")),
+					"thematic_control": (cs[i]["thematic_control"] !== undefined ? cs[i]["thematic_control"] : null),
+					"style": clone(cs[i]["style"]),
+					"fparams": clone(cs[i]["fparams"])	
+				});
+			}
+				*/
+		} else if (lc["label"] !== undefined && lc["label"] != null && lc["label"]["style"] !== undefined && lc["label"]["style"] != null ) {
+
+			lc["label"]["style"]["_index"] = this.stylecount;				
+			this.stylecount++;
+			if (this.styles[k_lname] === undefined) {
+				this.styles[k_lname] = [];
+			}
+			this.createLayerTOCEntry(k_lname, lc["label"]["style"]["_index"]);
 			this.styles[k_lname].push({
 					"lname": k_lname,
 					"_index": lc["label"]["style"]["_index"],
 					"lyrlabelkey": (lc["labelkey"] !== undefined ? lc["labelkey"] : ""),
 					"thematic_control": (lc["thematic_control"] !== undefined ? lc["thematic_control"] : null),
 					"style": clone(lc["label"]["style"])
-				});
+			});
 				
 		}
 	}
-	//console.log(this.styles);
+	//console.log(JSON.stringify(this.styles.pec_sru));
 }
 
 

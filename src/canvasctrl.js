@@ -104,7 +104,30 @@ function canvasAddSingleImage(p_canvas, p_fname, p_x, p_y, b_is_inscreenspace,
 
 function ctxGenericApplyStyle(p_canvasctx, p_styleobj, p_patterns, out_styleflags) {
 	
-	let foundattrs = [];
+	const foundattrs = [];
+	const modifiers = {
+		fillalpha: "ff"
+	};
+	
+	// collect modifier params
+	const modifier_params = [
+		"fillopacity"
+	];
+	
+	for (let i=0; i<modifier_params.length; i++) {	
+		if (p_styleobj.hasOwnProperty(modifier_params[i])) {
+			switch (modifier_params[i]) {
+				case "fillopacity":
+					if (typeof p_styleobj[modifier_params[i]] == 'string') {
+						modifiers.fillalpha = p_styleobj[modifier_params[i]];
+					} else {
+						modifiers.fillalpha = Math.round((255 * p_styleobj[modifier_params[i]])).toString(16);
+					}
+					break;
+			}
+		}
+	}
+
 	for (let k_attr in p_styleobj) {
 		if (!p_styleobj.hasOwnProperty(k_attr)) {
 			continue;
@@ -118,15 +141,24 @@ function ctxGenericApplyStyle(p_canvasctx, p_styleobj, p_patterns, out_styleflag
 				out_styleflags.stroke = true;
 				break;
 			case "fill":
+				let filltxt, tmptxt;
 				if (p_patterns[p_styleobj[k_attr]] !== undefined) {
 					if (typeof p_patterns[p_styleobj[k_attr]] == 'string' && (p_patterns[p_styleobj[k_attr]].indexOf('#') == 0)) {
-						p_canvasctx.fillStyle = p_patterns[p_styleobj[k_attr]];
+						filltxt = p_patterns[p_styleobj[k_attr]];
 					} else {
-						p_canvasctx.fillStyle = p_canvasctx.createPattern(p_patterns[p_styleobj[k_attr]], "repeat");
+						filltxt = p_canvasctx.createPattern(p_patterns[p_styleobj[k_attr]], "repeat");
 					}
 				} else {
-					p_canvasctx.fillStyle = p_styleobj[k_attr];
+					filltxt = p_styleobj[k_attr];
 				}
+				
+				tmptxt = filltxt + modifiers.fillalpha;				
+				if (filltxt.length < 8 && tmptxt.length <= 9) {				
+					p_canvasctx.fillStyle = tmptxt;
+				} else {
+					p_canvasctx.fillStyle = filltxt;
+				}
+			
 				out_styleflags.fill = true;
 				break;
 			case "linewidth":
@@ -957,7 +989,7 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 			} else {
 				this._mapcontroller.getScreenPtFromTerrain(p_points[0], p_points[1], pt);
 			}
-			window[p_markerfunc](this, pt, this._mapcontroller, opt_oid, opt_featattrs, dlayer);
+			window[p_markerfunc](this, pt, this._mapcontroller.getScale(), opt_oid, opt_featattrs, dlayer);
 			
 		} else {
 		
