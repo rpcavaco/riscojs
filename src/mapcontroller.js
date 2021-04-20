@@ -1431,6 +1431,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 								this.getScreenPtFromSrvResponse(part[crd_idx], part[crd_idx+1], pt);
 							} catch(e) {
 								console.log("Internal error in toScreenPoints, getScreenPt, path levels 3, part:"+partc_idx+" subpart:"+part_idx+", coord:"+crd_idx);
+								if (typeof hideLoaderImg != "undefined") { hideLoaderImg(); }
 								throw e;
 							}
 							outpart.push(pt[0]);
@@ -1463,6 +1464,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 							this.getScreenPtFromSrvResponse(part[crd_idx], part[crd_idx+1], pt);
 						} catch(e) {
 							console.log("Internal error in toScreenPoints, getScreenPt, path levels 2, part:"+part_idx+", coord:"+crd_idx);
+							if (typeof hideLoaderImg != "undefined") { hideLoaderImg(); }
 							throw e;
 						}
 						outpart.push(pt[0]);
@@ -1486,6 +1488,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 						this.getScreenPtFromSrvResponse(p_points_obj[crd_idx], p_points_obj[crd_idx+1], pt);
 					} catch(e) {
 						console.log("Internal error in toScreenPoints, getScreenPt, path levels 1, coord:"+crd_idx);
+						if (typeof hideLoaderImg != "undefined") { hideLoaderImg(); }
 						throw e;
 					}
 					out_screencoords.push(pt[0]);
@@ -3000,9 +3003,6 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 										if (!p_self.style_visibility.isLyrTOCVisibilityTrueOrUndef(lname) || !p_self.activateLayerStyle(lname, activateReturn)) {
 											dontdraw = true;
 										}
-										/*if (!p_self.style_visibility.isLyrTOCVisibile(lname)) {
-											dontdraw = true;
-										}*/
 										
 										p_self.callSequence.addMsg("_sendReadFeatureRequest_callback", _inv1, String.format("before setFeatureData, layer: {0}, dontdraw: {1}", lname, dontdraw));
 
@@ -3014,6 +3014,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 										} catch(e) {
 											console.log(".. error in _sendReadFeatureRequest, setFeatureData");
 											console.trace(e);
+											if (typeof hideLoaderImg != "undefined") { hideLoaderImg(); }
 											throw e;
 										}
 

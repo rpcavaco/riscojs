@@ -820,7 +820,7 @@ function emptyImageURL() {
 	return '';
 }
 
-function layerActivateTOC(p_domelem, p_ctx, p_styleobj, b_geomtype, p_layername, p_patterns, p_labelsample, p_bxwith, p_bxheight) {
+function layerActivateTOC(p_domelem, p_ctx, p_backing_obj, p_patterns, p_bxwith, p_bxheight) {
 	
 	p_domelem.style.color = 'white';
 	p_ctx.fillStyle = MapCtrlConst.TOCBCKGRDCOLOR;
@@ -831,17 +831,23 @@ function layerActivateTOC(p_domelem, p_ctx, p_styleobj, b_geomtype, p_layername,
 	let innerw = p_bxwith - 4;
 	let innerh = p_bxheight - 4;
 	
+	const styleobj =  p_backing_obj.sty.style;
+	const geomtype =  p_backing_obj.gtype;
+	//const layername = p_backing_obj.sty.lname;
+	// const lblsample = p_backing_obj.lblsample
+	const markerf = p_backing_obj.markerf
+	
 	styleflags = {};
-	ctxGenericApplyStyle(p_ctx, p_styleobj, p_patterns, styleflags);
+	ctxGenericApplyStyle(p_ctx, styleobj, p_patterns, styleflags);
 
-	if (b_geomtype == "POLY") {
+	if (geomtype == "POLY") {
 		if (styleflags.fill) {
 			p_ctx.fillRect (3, 3, innerw, innerh);
 		}
 		if (styleflags.stroke) {
 			p_ctx.strokeRect (3, 3, innerw, innerh);
 		}
-	} else if (b_geomtype == "LINE") {
+	} else if (geomtype == "LINE") {
 		if (styleflags.stroke) {
 			p_ctx.beginPath();
 			p_ctx.moveTo(3,innerh);
@@ -850,21 +856,27 @@ function layerActivateTOC(p_domelem, p_ctx, p_styleobj, b_geomtype, p_layername,
 			p_ctx.lineTo(innerw,3);
 			p_ctx.stroke();
 		}
-	} else if (b_geomtype == "POINT") {
-		//
-		//
-		//console.log([p_layername,styleflags,p_styleobj]);
+	} else if (geomtype == "POINT") {
 
-		if (p_styleobj.font !== undefined) {
-			p_ctx.font = p_styleobj.font;
+		/* Amostra etiqueta
+		if (styleobj.font !== undefined) {
+			p_ctx.font = styleobj.font;
 		}
 		
 		let lbltxt = "Az";
-		if (p_labelsample) {
-			lbltxt = p_labelsample.slice(0,3);
+		if (labelsample) {
+			lbltxt = labelsample.slice(0,3);
 		}
-		//console.log(p_ctx.fillStyle);
 		p_ctx.fillText(lbltxt, 14, 12);
+		*/
+		
+		const tocattrs = styleobj.tocattrs;
+		const tocscale = styleobj.tocscale;
+		
+		if (window[markerf] !== undefined) {		
+			window[markerf](p_ctx, [3+parseInt(innerw/2), 3+parseInt(innerh/2)], tocscale, -1, tocattrs);
+		}
+
 	}
 
 }
@@ -1191,7 +1203,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 			}
 
 			if (this.isLyrTOCVisibile(p_backing_obj.sty.lname) && p_ismapvisible && p_backing_obj.gtype != "NONE") {
-				layerActivateTOC(p_d, ctx, p_backing_obj.sty.style, p_backing_obj.gtype, p_backing_obj.sty.lname, this.mapcontroller.fillpatterns, p_backing_obj.lblsample, p_legcell_dims.w, p_legcell_dims.h );
+				layerActivateTOC(p_d, ctx, p_backing_obj, this.mapcontroller.fillpatterns, p_legcell_dims.w, p_legcell_dims.h );
 			} else {
 				layerDeactivateTOC(p_d, ctx, this.mapcontroller.fillpatterns, p_layer_notviz_image_params, p_legcell_dims.w, p_legcell_dims.h);
 			}
@@ -1481,6 +1493,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 								backing_obj.colspan = 1;
 								backing_obj.lblsample = this.elementstats[oidx][4];
 								backing_obj.gtype = gtype;
+								backing_obj.markerf = (this.maplyrconfig[lname]["markerfunction"] !== undefined ? this.maplyrconfig[lname]["markerfunction"] : null);
 								backing_obj.sty = sty;
 								backing_obj.grpbndry = 'NONE';
 								backing_obj_arr.push(clone(backing_obj));	
@@ -1509,6 +1522,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 						backing_obj.colspan = 1;
 						backing_obj.lblsample = this.elementstats[oidx][4];
 						backing_obj.gtype = gtype;
+						backing_obj.markerf = (this.maplyrconfig[lname]["markerfunction"] !== undefined ? this.maplyrconfig[lname]["markerfunction"] : null);
 						backing_obj.sty = sty;
 						backing_obj.grpbndry = 'NONE';
 						backing_obj_arr.push(clone(backing_obj));
@@ -1533,6 +1547,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 							backing_obj.colspan = 1;
 							backing_obj.lblsample = this.elementstats[_oidx][4];
 							backing_obj.gtype = gtype;
+							backing_obj.markerf = (this.maplyrconfig[lname]["markerfunction"] !== undefined ? this.maplyrconfig[lname]["markerfunction"] : null);
 							backing_obj.sty = _sty;
 							backing_obj.grpbndry = 'NONE';
 							backing_obj_arr.push(clone(backing_obj));
@@ -1563,6 +1578,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 					backing_obj.colspan = 1;
 					backing_obj.lblsample = _lbs;
 					backing_obj.gtype = gtype;
+					backing_obj.markerf = (this.maplyrconfig[lname]["markerfunction"] !== undefined ? this.maplyrconfig[lname]["markerfunction"] : null);
 					backing_obj.sty = _sty;
 					backing_obj.grpbndry = 'NONE';
 					backing_obj_arr.push(clone(backing_obj));

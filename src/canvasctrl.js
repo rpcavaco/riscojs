@@ -338,7 +338,7 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 			"NOID": "construtor de 'CanvasController' invocado sem ID do elemento canvas respectivo",
 			"NOCANVAS": "Este browser não suporta Canvas",
 			"NOSTYOBJ": "objecto de style inválido",
-			"NOTHDRAW": "uma das layers nao tem estilo definido: nada a desenhar",
+			"NOTHDRAW": "o estilo com índice {0} está mal definido: nada a desenhar",
 			"MISSLYRNAME": "nome de layer 'canvas' não encontrado:",
 			"MISSVRTMRKFUNC": "função de marcação de véritces não definida",
 			"MISMIDPMRKFUNC": "função de marcação de pontos médios não definida"
@@ -936,8 +936,11 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 					break;*/
 			}
 		}
-		if (out_styleflags.stroke === undefined ||  out_styleflags.fill === undefined || (!out_styleflags.stroke && !out_styleflags.fill)) {
-			throw new Error("applyStyle "+this.msg("NOTHDRAW"));
+		
+		// tocscale is part of point symbology, not requiring either stroke or fill
+		if (p_styleobj.tocscale === undefined && (out_styleflags.stroke === undefined ||  out_styleflags.fill === undefined || (!out_styleflags.stroke && !out_styleflags.fill))) {
+			console.log(p_styleobj);
+			throw new Error("applyStyle "+String.format(this.msg("NOTHDRAW"), p_styleobj._index));
 		}
 	};
 		
@@ -956,12 +959,14 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 					p_markerfunc, is_inscreenspace,  
 					b_dolog, opt_oid, opt_featattrs, opt_displaylayer) 
 	{
-		let dlayer, retgtype = "NONE";
+		let dlayer, ctx, retgtype = "NONE";
 		if (opt_displaylayer) {
 			dlayer = opt_displaylayer;
 		} else {
 			dlayer = this.activeDisplayLayer;
 		}
+		
+		ctx = this._ctxdict[dlayer];
 		
 		if (p_points.length < 1) {
 			return;
@@ -989,11 +994,11 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 			} else {
 				this._mapcontroller.getScreenPtFromTerrain(p_points[0], p_points[1], pt);
 			}
-			window[p_markerfunc](this, pt, this._mapcontroller.getScale(), opt_oid, opt_featattrs, dlayer);
+			window[p_markerfunc](ctx, pt, this._mapcontroller.getScale(), opt_oid, opt_featattrs);
 			
 		} else {
 		
-			this._ctxdict[dlayer].beginPath();
+			ctx.beginPath();
 
 			for (var cpi=0; cpi<p_points.length; cpi+=2) 
 			{
@@ -1030,9 +1035,9 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 				}
 				
 				if (cpi==0) {
-					this._ctxdict[dlayer].moveTo(pt[0], pt[1]);
+					ctx.moveTo(pt[0], pt[1]);
 				} else {
-					this._ctxdict[dlayer].lineTo(pt[0], pt[1]);
+					ctx.lineTo(pt[0], pt[1]);
 				}
 				
 				if (b_dolog) {
@@ -1040,13 +1045,13 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 				}
 			}
 			if (p_stroke) {
-				this._ctxdict[dlayer].stroke();
+				ctx.stroke();
 				if (b_dolog) {
 					console.log(dlayer+" stroking");
 				}
 			} 
 			if (p_fill) {
-				this._ctxdict[dlayer].fill();
+				ctx.fill();
 				if (b_dolog) {
 					console.log(dlayer+" filling");
 				}
