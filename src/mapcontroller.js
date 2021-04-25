@@ -2312,21 +2312,30 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			(out_styleflags.stroke || out_styleflags.fill)) || 
 			markerf!=null )
 		{
-			gtype = this.drawFeatureInCanvas(p_featdata, out_styleflags.stroke, 
-				out_styleflags.fill, markerf, 
-				is_inscreenspace, opt_dodebug, 
-				p_layername,
-				displaylayer);
-				
-			if (opt_noincvizstats!==true && this.currentstyle!=null) {
-				this.style_visibility.incrementElemStats(gtype, this.currentstyle, p_layername);
+			let proceed = true;
+			if (this.currentstyle!=null && this.currentstyle["_index"] !== undefined) {
+				proceed = this.style_visibility.isLyrTOCStyleVisibile(this.currentstyle["_index"]);
 			}
-							
-			//let currstyle = this.styleStack[displaylayer][this.styleStack[displaylayer].length-1]
+			
+			if (proceed) {
+			
+				gtype = this.drawFeatureInCanvas(p_featdata, out_styleflags.stroke, 
+					out_styleflags.fill, markerf, 
+					is_inscreenspace, opt_dodebug, 
+					p_layername,
+					displaylayer);
+					
+				if (opt_noincvizstats!==true && this.currentstyle!=null) {
+					this.style_visibility.incrementElemStats(gtype, this.currentstyle, p_layername);
+				}
+								
+				//let currstyle = this.styleStack[displaylayer][this.styleStack[displaylayer].length-1]
 
-			if (opt_dodebug) {
-				console.log("  .. out_styleflags:"+JSON.stringify(out_styleflags)+" strokestyle:"+this.getGraphicController().getStrokeStyle('temporary'));
-				console.log("  .. _drawFeature, depois drawFeatureInCanvas");
+				if (opt_dodebug) {
+					console.log("  .. out_styleflags:"+JSON.stringify(out_styleflags)+" strokestyle:"+this.getGraphicController().getStrokeStyle('temporary'));
+					console.log("  .. _drawFeature, depois drawFeatureInCanvas");
+				}
+			
 			}
 
 		}
@@ -2879,7 +2888,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 						}
 					}
 				}
-			}
+		}
 
 		if (out_return.activestyle != null) {
 			this.popStyle(out_return.fillStroke, opt_displaylayer);

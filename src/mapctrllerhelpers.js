@@ -925,10 +925,6 @@ function StyleVisibility(p_mapctrlr, p_config) {
 	this.styles = {};
 	this.stylecount = 0;
 	this.orderedindexes = [];
-	this.elementstats = {}; // contains a per-style index dict with arrays 
-		// carrying statistics: number of points, lines, polygons, 
-		// other and a sample of element labeling
-
 	this.layer_to_tocentries = {}; // per layername dict
 	this.toc_entries = {}; // per style index dict
 	
@@ -993,20 +989,11 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		return ret;
 		
 	};
-	this.isLyrTOCStyleVisibile = function(p_stdix) {
-		
-		const tocentries = this.layer_to_tocentries[p_lname];
-		let ret = false;
-		
-		if (tocentries != null) {
-			for (let ti=0; ti<tocentries.length; ti++) {
-				if (this.toc_entries[tocentries[ti]].visible) {
-					ret = true;
-					break;
-				}
-			}
+	this.isLyrTOCStyleVisibile = function(p_stdix) {	
+		let ret = false;		
+		if (this.toc_entries[p_stdix] !== undefined) {
+			ret = this.toc_entries[p_stdix].visible;
 		}
-
 		return ret;		
 	};
 	
@@ -1027,7 +1014,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		return ret;		
 	};
 	
-	this.createLayerTOCEntry = function(p_lname, p_styidx) {
+	this.createLayerTOCEntry = function(p_lname, p_styidx, opt_pinned) {
 		
 		if (this.layer_to_tocentries[p_lname] === undefined) {
 			this.layer_to_tocentries[p_lname] = [];
@@ -1039,6 +1026,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 			this.toc_entries[p_styidx] = {
 				lname: p_lname, pt: 0, lin: 0, pol: 0, 
 				undef: 0, lblsample: null,
+				pinned: (opt_pinned ? true : false),
 				visible: true
 			};
 		}
@@ -1047,26 +1035,51 @@ function StyleVisibility(p_mapctrlr, p_config) {
 	// toggle layers or styles: if only opt_lname is given, toggles entire layer,
 	//  if opt_style_index is given it toggles just that style
 	this.toggleVisibility = function(opt_lname, opt_style_index) {
-				
+
+		let ret=false, lviz, tocentries, lname=null;
 		if (opt_lname) {
-			const lviz = this.mapcontroller.checkLayerVisibility(opt_lname);					
-			const tocentries = this.layer_to_tocentries[opt_lname];
+			lname = opt_lname;	
+		} else if (opt_style_index) {
+			for (let tmp_lname in this.layer_to_tocentries) {
+				if (this.layer_to_tocentries.hasOwnProperty(tmp_lname)) {
+					if (this.layer_to_tocentries[tmp_lname].indexOf(opt_style_index) >= 0) {
+						lname = tmp_lname;
+						break;
+					}						
+				}
+			}
+		}
+		
+		if (lname === null) {
+			throw new Error("toggleVisibility -- unidentifiable layer name from given params (layername, style index):", opt_lname, opt_style_index);
+		}			
+		
+		if (!this.mapcontroller.checkLayerVisibility(lname)) {
+			tocentries = this.layer_to_tocentries[lname];
 			if (tocentries != null) {
 				for (let ti=0; ti<tocentries.length; ti++) {
-					if (!lviz) {
-						this.toc_entries[tocentries[ti]].visible = false;
-					} else {
-						this.toc_entries[tocentries[ti]].visible = !this.toc_entries[tocentries[ti]].visible;
+					if (this.toc_entries[tocentries[ti]].visible) {
+						ret = true;
 					}
+					this.toc_entries[tocentries[ti]].visible = false;
 				}		
 			}
-			if (!lviz) {
-				return false;
-			}
-		} else if (opt_style_index) {
-			this.toc_entries[opt_style_index].visible = !this.toc_entries[opt_style_index].visible;
+		} else {		
+			if (opt_style_index) {
+				ret = true;
+				this.toc_entries[opt_style_index].visible = !this.toc_entries[opt_style_index].visible;
+			} else if (opt_lname) {
+				tocentries = this.layer_to_tocentries[opt_lname];
+				if (tocentries != null) {
+					for (let ti=0; ti<tocentries.length; ti++) {
+						ret = true;
+						this.toc_entries[tocentries[ti]].visible = !this.toc_entries[tocentries[ti]].visible;
+					}		
+				}
+			}		
 		}
-		return true;
+		
+		return ret;
 	};
 	
 	this._holdReleaseVisibility	 = function(p_tovisible, p_lname) {
@@ -1181,85 +1194,84 @@ function StyleVisibility(p_mapctrlr, p_config) {
 	
 	this.genCanvasTOCElem = function(p_d, p_d2, p_backing_obj, p_cnvidx, p_legcell_dims, p_ismapvisible, p_layer_notviz_image_params, p_tcfn) {
 		
-		let canvasel, ctx, cnvidx = p_cnvidx + 1;
+		let canvasel, ctx, cnvidx = p_cnvidx + 1, wholelyr_tocviz, lyr_tocviz, do_activate;
 		
-		if (!p_backing_obj.empty) {
-
-			// Legend symbol
-			canvasel = document.createElement('canvas');
-			canvasel.setAttribute('class', 'visctrl-classimg');
-			canvasel.setAttribute('id', 'cnv'+cnvidx);
-			canvasel.setAttribute('width', p_legcell_dims.w);
-			canvasel.setAttribute('height', p_legcell_dims.h);
-				
-			ctx = canvasel.getContext('2d');
-
-			if (this.do_debug) {
-				console.log(" === START genCanvasTOCElem =========");
-				console.log("  LAYERNAME:", p_backing_obj.sty.lname);
-				console.log("  TOCVIZ:", this.isLyrTOCVisibile(p_backing_obj.sty.lname));
-				console.log("  gtype, isMapvisible:", p_backing_obj.gtype, p_ismapvisible);
-				console.log(" === END ===========================");
-			}
-
-			if (this.isLyrTOCVisibile(p_backing_obj.sty.lname) && p_ismapvisible && p_backing_obj.gtype != "NONE") {
-				layerActivateTOC(p_d, ctx, p_backing_obj, this.mapcontroller.fillpatterns, p_legcell_dims.w, p_legcell_dims.h );
-			} else {
-				layerDeactivateTOC(p_d, ctx, this.mapcontroller.fillpatterns, p_layer_notviz_image_params, p_legcell_dims.w, p_legcell_dims.h);
-			}
+		// Legend symbol
+		canvasel = document.createElement('canvas');
+		canvasel.setAttribute('class', 'visctrl-classimg');
+		canvasel.setAttribute('id', 'cnv'+cnvidx);
+		canvasel.setAttribute('width', p_legcell_dims.w);
+		canvasel.setAttribute('height', p_legcell_dims.h);
 			
-			if (p_tcfn != null && window[p_tcfn] !== undefined) {
-				(function(p_canvasel, p_func) {	
-					attEventHandler(p_canvasel, 'click',
-						function(evt) { window[p_func](false); }
-					);
-				})(canvasel,p_tcfn);
-			} else {
-				(function(p_self, p_canvasel, p_lname, p_styindex) {						
-					attEventHandler(p_canvasel, 'click',
-						function(evt) {
-							if (p_self.toggleVisibility(p_lname, p_styindex)) {
-								p_self.mapcontroller.redraw(false, true);
-								p_self.mapcontroller.onChangeFinish("toggleTOC");
-							} 
-						}
-					);
-				})(this, canvasel, p_backing_obj.sty.lname, p_backing_obj.sty._index);
-			}
+		ctx = canvasel.getContext('2d');
 
-			/*
-			(function(p_self, p_canvasel, p_styleobj, p_lname) {						
-				attEventHandler(p_canvasel, 'mouseover',
+		if (this.do_debug) {
+			console.log(" === START genCanvasTOCElem =========");
+			console.log("  LAYERNAME:", p_backing_obj.sty.lname);
+			console.log("  TOCVIZ:", this.isLyrTOCVisibile(p_backing_obj.sty.lname));
+			console.log("  gtype, isMapvisible:", p_backing_obj.gtype, p_ismapvisible);
+			console.log(" === END ===========================");
+		}
+		
+		//wholelyr_tocviz = (this.isLyrTOCVisibile(p_backing_obj.sty.lname) && p_ismapvisible && p_backing_obj.gtype != "NONE");
+		lyr_tocviz = this.toc_entries[p_backing_obj.sty._index].visible && p_ismapvisible && p_backing_obj.gtype != "NONE";
+
+		if (lyr_tocviz) {
+			layerActivateTOC(p_d, ctx, p_backing_obj, this.mapcontroller.fillpatterns, p_legcell_dims.w, p_legcell_dims.h );
+		} else {
+			layerDeactivateTOC(p_d, ctx, this.mapcontroller.fillpatterns, p_layer_notviz_image_params, p_legcell_dims.w, p_legcell_dims.h);
+		}
+		
+		if (p_tcfn != null && window[p_tcfn] !== undefined) {
+			(function(p_canvasel, p_func) {	
+				attEventHandler(p_canvasel, 'click',
+					function(evt) { window[p_func](false); }
+				);
+			})(canvasel,p_tcfn);
+		} else {
+			(function(p_self, p_canvasel, p_lname, p_styindex) {						
+				attEventHandler(p_canvasel, 'click',
 					function(evt) {
-						var objectoids = p_self.mapcontroller.perattribute_indexing.get(p_lname, p_styleobj._index);
-						var inscreenspace = true;
-						var dlayer = 'transient';
-						if (objectoids) {
-							p_self.mapcontroller.clearTransient();
-							for (var oidx=0; oidx<objectoids.length; oidx++) {
-								// TODO - passar para init / app.js
-								p_self.mapcontroller.drawSingleFeature(p_lname, objectoids[oidx], inscreenspace, dlayer,  
-											{										
-												"strokecolor": 'cyan',
-												"linewidth": 3,
-												"shadowcolor": "#000",
-												"shadowoffsetx": 2,
-												"shadowoffsety": 2,
-												"shadowblur": 2
-											}, null, true, null,						
-											false);	
-							}
-						}
-
+						if (p_self.toggleVisibility(p_lname, p_styindex)) {
+							p_self.mapcontroller.redraw(false, true);
+							p_self.mapcontroller.onChangeFinish("toggleTOC");
+						} 
 					}
 				);
-			})(this, canvasel, p_backing_obj.sty.style, p_backing_obj.sty.lname);
-			*/
-
-			p_d2.appendChild(canvasel);
-			
+			})(this, canvasel, p_backing_obj.sty.lname, p_backing_obj.sty._index);
 		}
-	
+
+		/*
+		(function(p_self, p_canvasel, p_styleobj, p_lname) {						
+			attEventHandler(p_canvasel, 'mouseover',
+				function(evt) {
+					var objectoids = p_self.mapcontroller.perattribute_indexing.get(p_lname, p_styleobj._index);
+					var inscreenspace = true;
+					var dlayer = 'transient';
+					if (objectoids) {
+						p_self.mapcontroller.clearTransient();
+						for (var oidx=0; oidx<objectoids.length; oidx++) {
+							// TODO - passar para init / app.js
+							p_self.mapcontroller.drawSingleFeature(p_lname, objectoids[oidx], inscreenspace, dlayer,  
+										{										
+											"strokecolor": 'cyan',
+											"linewidth": 3,
+											"shadowcolor": "#000",
+											"shadowoffsetx": 2,
+											"shadowoffsety": 2,
+											"shadowblur": 2
+										}, null, true, null,						
+										false);	
+						}
+					}
+
+				}
+			);
+		})(this, canvasel, p_backing_obj.sty.style, p_backing_obj.sty.lname);
+		*/
+
+		p_d2.appendChild(canvasel);
+			
 		return cnvidx;
 	};
 	
@@ -1358,8 +1370,8 @@ function StyleVisibility(p_mapctrlr, p_config) {
 						}
 
 						if (sty["thematic_control"] !== undefined && sty["thematic_control"] != null && sty["thematic_control"].length > 0) {
-							if (this.elementstats[sty._index] !== undefined) {
-								thematic_widget = { "ctrl": sty["thematic_control"], "styleobj": sty, "lblsample": this.elementstats[sty._index][4] };
+							if (this.toc_entries[sty._index] !== undefined) {
+								thematic_widget = { "ctrl": sty["thematic_control"], "styleobj": sty, "lblsample": this.toc_entries[sty._index].lblsample };
 							} else {
 								thematic_widget = { "ctrl": sty["thematic_control"], "styleobj": sty, "lblsample": "" };
 							}
@@ -1409,12 +1421,14 @@ function StyleVisibility(p_mapctrlr, p_config) {
 							continue;
 						}
 					}
-
+					
 					// if no features found, don't create  TOC entry
-					let fc = this.mapcontroller.featuresFound(lname);
-					if (fc < 1) {
-						console.warn("[UPD TOC] layer", lname, ", removing TOC entry - no features found");
-						continue;
+					let featcount = this.mapcontroller.featuresFound(lname);
+					if (!this.toc_entries[sty._index].pinned) {
+						if (featcount < 1) {
+							console.warn("[UPD TOC] layer", lname, ", removing TOC entry - no features found");
+							continue;
+						}
 					}
 
 					if (this.do_debug) {
@@ -1422,6 +1436,30 @@ function StyleVisibility(p_mapctrlr, p_config) {
 					}
 
 					if (ordredstyles.length > 1) {
+						
+						// only layer title for pinned layer
+						if (featcount == 0) {
+
+							if (sty["lyrlabelkey"] !== undefined && sty["lyrlabelkey"].length > 0) {
+								lyrtitle = p_i18n_function(sty["lyrlabelkey"]);
+							}
+
+							if (additions_to_backobj == 0 && lyrtitle.length > 0) {
+								backing_obj.lbl = lyrtitle;
+								backing_obj.lblstyle = 'ENTRY';
+								backing_obj.lname = lname;
+								backing_obj.colspan = 2;
+								backing_obj.lblsample = backing_obj.sty = null;
+								backing_obj.gtype = null;
+								backing_obj.grpbndry = 'START';
+								backing_obj.nofeats = true;
+								backing_obj.activationenv = (this.maplyrconfig[lname]["activationenv"] !== undefined ? this.maplyrconfig[lname]["activationenv"] : null);
+								backing_obj_arr.push(clone(backing_obj));
+								additions_to_backobj++;
+							}
+
+							continue;
+						}
 						
 						for (var j=0; j<ordredstyles.length; j++) {
 							
@@ -1432,10 +1470,10 @@ function StyleVisibility(p_mapctrlr, p_config) {
 							if (gtype == null || tmpgtype != "NONE") {
 								gtype = tmpgtype;
 							}
-													
-							if (Object.keys(this.elementstats).indexOf(oidx.toString()) < 0) {
+							
+							if (Object.keys(this.toc_entries).indexOf(oidx.toString()) < 0) {
 								if (this.do_debug) {
-									console.log("[UPD TOC] layer", lname, ", sty.index", oidx, "not in these elementstats:", Object.keys(this.elementstats));
+									console.log("[UPD TOC] layer", lname, ", sty.index", oidx, "not in these elementstats:", Object.keys(this.toc_entries));
 								}
 								continue;
 							}
@@ -1491,11 +1529,13 @@ function StyleVisibility(p_mapctrlr, p_config) {
 								}
 								backing_obj.lblstyle = 'SUBENTRY';
 								backing_obj.colspan = 1;
-								backing_obj.lblsample = this.elementstats[oidx][4];
+								backing_obj.lblsample = this.toc_entries[oidx].lblsample;
 								backing_obj.gtype = gtype;
 								backing_obj.markerf = (this.maplyrconfig[lname]["markerfunction"] !== undefined ? this.maplyrconfig[lname]["markerfunction"] : null);
 								backing_obj.sty = sty;
 								backing_obj.grpbndry = 'NONE';
+								backing_obj.nofeats = false;
+								backing_obj.activationenv = null;
 								backing_obj_arr.push(clone(backing_obj));	
 								additions_to_backobj++;
 							
@@ -1520,11 +1560,13 @@ function StyleVisibility(p_mapctrlr, p_config) {
 						backing_obj.lblstyle = 'ENTRY';
 						backing_obj.lname = lname;
 						backing_obj.colspan = 1;
-						backing_obj.lblsample = this.elementstats[oidx][4];
+						backing_obj.lblsample = this.toc_entries[oidx].lblsample;
 						backing_obj.gtype = gtype;
 						backing_obj.markerf = (this.maplyrconfig[lname]["markerfunction"] !== undefined ? this.maplyrconfig[lname]["markerfunction"] : null);
 						backing_obj.sty = sty;
 						backing_obj.grpbndry = 'NONE';
+						backing_obj.nofeats = false;
+						backing_obj.activationenv = null;
 						backing_obj_arr.push(clone(backing_obj));
 						additions_to_backobj++;
 					}
@@ -1545,11 +1587,13 @@ function StyleVisibility(p_mapctrlr, p_config) {
 							backing_obj.lblstyle = 'ENTRY';
 							backing_obj.lname = lname;
 							backing_obj.colspan = 1;
-							backing_obj.lblsample = this.elementstats[_oidx][4];
+							backing_obj.lblsample = this.toc_entries[_oidx].lblsample;
 							backing_obj.gtype = gtype;
 							backing_obj.markerf = (this.maplyrconfig[lname]["markerfunction"] !== undefined ? this.maplyrconfig[lname]["markerfunction"] : null);
 							backing_obj.sty = _sty;
 							backing_obj.grpbndry = 'NONE';
+							backing_obj.nofeats = false;
+							backing_obj.activationenv = null;
 							backing_obj_arr.push(clone(backing_obj));
 							additions_to_backobj++;
 						
@@ -1564,6 +1608,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 				// If this layer was not added to backing object and has thematic widget,
 				// a dummy style is added to provide a TOC entry with invisibility symbol
 				if (thematic_widget != null && backing_obj_arr.length==0) {
+					
 					let _sty = thematic_widget["styleobj"];
 					let _lbs = thematic_widget["lblsample"];
 
@@ -1581,10 +1626,11 @@ function StyleVisibility(p_mapctrlr, p_config) {
 					backing_obj.markerf = (this.maplyrconfig[lname]["markerfunction"] !== undefined ? this.maplyrconfig[lname]["markerfunction"] : null);
 					backing_obj.sty = _sty;
 					backing_obj.grpbndry = 'NONE';
+					backing_obj.nofeats = false;
+					backing_obj.activationenv = null;
 					backing_obj_arr.push(clone(backing_obj));
 					additions_to_backobj++;
-				}
-				
+				}				
 			} // for (lnamesidx=(this.maplyrnames.length-1); lnamesidx>=0; lnamesidx--) {
 
 			// Ensure group boundaries are properly closed
@@ -1602,7 +1648,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 			
 			let leg_prevcols = 0;
 			let cols = 1; 			
-			while ( ((backing_obj_arr.length * legcfg.elem_height) * 1.0 / cols) > legend_control_defaults.height && cols < legcfg.max_cols ) {
+			while ( (((1 + backing_obj_arr.length) * legcfg.elem_height) * 1.0 / cols) > legend_control_defaults.height && cols < legcfg.max_cols ) {
 				cols++;
 			}			
 			leg_dims.cols = cols;
@@ -1647,7 +1693,11 @@ function StyleVisibility(p_mapctrlr, p_config) {
 						legendcaption_created = true;
 					}
 
-					backing_obj = backing_obj_arr[bi];
+					backing_obj = backing_obj_arr[bi];	
+					// symbol classes of invisible layers are not inserted
+					if (!this.isLyrTOCVisibile(backing_obj.lname) && backing_obj.lblstyle == "SUBENTRY") {
+						continue;
+					}
 					
 					if (backing_obj.grpbndry == "START" || backing_obj.colspan > leg_dims.cols-currcol) {
 						r = document.createElement("tr");	
@@ -1681,19 +1731,41 @@ function StyleVisibility(p_mapctrlr, p_config) {
 						setClass(d, "visctrl-entry");
 						setClass(d, "unselectable");
 						
-						console.log(backing_obj);
+						if (backing_obj.nofeats) {
+							
+							setClass(d, "visctrl-nofeats");
+
+							// attach event for toggling entire layer viz, all style classes
+							(function(p_self, p_el, p_mapctrlr, p_env) {						
+								attEventHandler(p_el, 'click',
+									function(evt) {
+										p_mapctrlr.refreshFromMinMax(p_env[0], p_env[1], p_env[2], p_env[3]);
+									}
+								);
+							})(this, d, this.mapcontroller, backing_obj.activationenv);
+
+						} else {
+							
+							d2 = document.createElement("div");	
+							if (this.isLyrTOCVisibile(backing_obj.lname)) {
+								setClass(d2, "viz");
+							} else {
+								setClass(d2, "inviz");
+							}
+							d.insertBefore(d2, d.firstChild);	
 						
-						// attach event for toggling entire layer viz, all style classes
-						(function(p_self, p_el, p_lname) {						
-							attEventHandler(p_el, 'click',
-								function(evt) {
-									if (p_self.toggleVisibility(p_lname, null)) {
-										p_self.mapcontroller.redraw(false, true);
-										p_self.mapcontroller.onChangeFinish("toggleTOC");
-									} 
-								}
-							);
-						})(this, d, backing_obj.lname);
+							// attach event for toggling entire layer viz, all style classes
+							(function(p_self, p_el, p_lname) {						
+								attEventHandler(p_el, 'click',
+									function(evt) {
+										if (p_self.toggleVisibility(p_lname, null)) {
+											p_self.mapcontroller.redraw(false, true);
+											p_self.mapcontroller.onChangeFinish("toggleTOC");										
+										} 
+									}
+								);
+							})(this, d, backing_obj.lname);
+						}
 						
 					} else if (backing_obj.lblstyle == "SUBENTRY") {
 						setClass(d, "visctrl-subentry")
@@ -1753,32 +1825,23 @@ function StyleVisibility(p_mapctrlr, p_config) {
 				this.orderedindexes.push(idx);
 			}
 			console.assert(this.toc_entries[idx] !== undefined, String.format("Missing toc_entry {0}, wasn't properly created in StyleVisibility.createLayerTOCEntry",idx));
-			if (this.elementstats[idx] === undefined) {
-										/* point, line, poly, undefined */
-				this.elementstats[idx] = [0,0,0,0, null];
-			}
 			
 			if (p_gtype.toUpperCase() == "POINT") {
-				this.elementstats[idx][0] = this.elementstats[idx][0] + inc;
 				this.toc_entries[idx].pt =  this.toc_entries[idx].pt + inc;
 				if (opt_lblsample) {
-					this.elementstats[idx][4] = opt_lblsample;
 					this.toc_entries[idx].lblsample = opt_lblsample;
 				}
 			} else if (p_gtype.toUpperCase() == "LINE") {
-				this.elementstats[idx][1] = this.elementstats[idx][1] + inc;
 				this.toc_entries[idx].lin =  this.toc_entries[idx].lin + inc;
 			} else if (p_gtype.toUpperCase() == "POLY") {
-				this.elementstats[idx][2] = this.elementstats[idx][2] + inc;
 				this.toc_entries[idx].pol =  this.toc_entries[idx].pol + inc;
 			} else {
-				this.elementstats[idx][3] = this.elementstats[idx][3] + inc;
 				this.toc_entries[idx].undef =  this.toc_entries[idx].undef + inc;
 			}
 		}	
 	};
 
-	let lc, cs, k_lname;
+	let lc, cs, k_lname, pinned;
 	for (let kli=0; kli < this.maplyrnames.length; kli++) {
 		
 		k_lname = this.maplyrnames[kli];
@@ -1788,9 +1851,10 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		}
 		
 		lc = this.maplyrconfig[k_lname];
+		pinned = (lc["pinned"] !== undefined ? lc["pinned"] : false);
 		if (lc["style"] !== undefined && lc["style"] != null) {
 			lc["style"]["_index"] = this.stylecount;				
-			this.createLayerTOCEntry(k_lname, this.stylecount);
+			this.createLayerTOCEntry(k_lname, this.stylecount, pinned);
 			this.stylecount++;
 			if (this.styles[k_lname] === undefined) {
 				this.styles[k_lname] = [];
@@ -1815,7 +1879,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 				}
 				if (k_cstype == "default") {
 					cs[k_cstype]["_index"] = this.stylecount;
-					this.createLayerTOCEntry(k_lname, this.stylecount);
+					this.createLayerTOCEntry(k_lname, this.stylecount, pinned);
 					this.stylecount++;
 					this.styles[k_lname].push({
 							"lname": k_lname,
@@ -1831,7 +1895,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 						}
 						for (let i_class = 0; i_class < cs[k_cstype][k_attrname].length; i_class++) {
 							cs[k_cstype][k_attrname][i_class]["style"]["_index"] = this.stylecount;
-							this.createLayerTOCEntry(k_lname, this.stylecount);
+							this.createLayerTOCEntry(k_lname, this.stylecount, pinned);
 							this.stylecount++;
 							this.styles[k_lname].push({
 									"lname": k_lname,
@@ -1872,12 +1936,13 @@ function StyleVisibility(p_mapctrlr, p_config) {
 				*/
 		} else if (lc["label"] !== undefined && lc["label"] != null && lc["label"]["style"] !== undefined && lc["label"]["style"] != null ) {
 
-			lc["label"]["style"]["_index"] = this.stylecount;				
+			lc["label"]["style"]["_index"] = this.stylecount;		
+			pinned = (lc["pinned"] !== undefined ? lc["pinned"] : false);			
 			this.stylecount++;
 			if (this.styles[k_lname] === undefined) {
 				this.styles[k_lname] = [];
 			}
-			this.createLayerTOCEntry(k_lname, lc["label"]["style"]["_index"]);
+			this.createLayerTOCEntry(k_lname, lc["label"]["style"]["_index"], pinned);
 			this.styles[k_lname].push({
 					"lname": k_lname,
 					"_index": lc["label"]["style"]["_index"],
