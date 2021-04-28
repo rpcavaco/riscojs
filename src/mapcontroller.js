@@ -112,7 +112,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		}
 		return this.i18nmsgs[lang][p_msgkey];
 	};
-	this.normalFinishModes = ["retrievetasters", "normal", "toggleTOC"];
+	this.normalFinishModes = ["retrievetasters", "normal", "toggleRedrawTOC"];
 	
 	this.dodebug = false;
 	this.callSequence = new CallSequence(p_debug_callsequence);
@@ -1114,6 +1114,10 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				}
 								
 				bot = 0; top = MapCtrlConst.MAXSCALE_VALUE;
+				
+				if (this.lconfig[lname].visible === undefined) {
+					this.lconfig[lname].visible = true;
+				}
 				
 				lc = this.lconfig[lname];
 				
@@ -2639,8 +2643,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		
 		this.activateLayerStyle(p_layername, out_return, opt_displaylayer, opt_style);		
 
-		if (ldata[p_objid] !== undefined && ldata[p_objid] != null)
-		{
+		if (ldata[p_objid] !== undefined && ldata[p_objid] != null) {
 			feat = ldata[p_objid];
 			this._drawFeature(feat, out_return.perattribute,
 								out_return.markerfunction, 
@@ -2648,7 +2651,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 								out_return.fillStroke, dodebug,  
 								opt_displaylayer, true);
 		} else {
-			console.warn("drawSingleFeature, NULL feature data, key:"+p_objid);
+			console.warn("drawSingleFeature, NULL feature data, layer:", p_layername, "oid:", p_objid);
 			return null;
 		}
 
@@ -3265,7 +3268,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			rasternames = clone(opt_rasternames);
 		}
 		
-		if (this.lconfig[p_layername].visible === undefined || this.lconfig[p_layername].visible) {		
+		if (this.lconfig[p_layername].visible) {		
 				
 			scldep = this.checkLayerScaleDepVisibility(p_layername);
 			if (rasternames.indexOf(p_layername) >= 0) {
@@ -3274,15 +3277,12 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				mutingfilter = (!this.muted_vectors || (this.lconfig[p_layername].allowmuting !== undefined && !this.lconfig[p_layername].allowmuting));
 			}
 			
-			if (scldep && mutingfilter)
-			{
+			if (scldep && mutingfilter) {
 				ret = true;			
-			}	
-			
+			}				
 		}	
 		
-		//console.trace("checkLayerVisibility"+p_layername+" scld:"+scldep+" mutf:"+mutingfilter);
-		
+		//console.log("checkLayerVisibility", p_layername, " scld:", scldep, "mutf:", mutingfilter, "ret:", ret);		
 		return ret;
 	};
 
@@ -3859,6 +3859,8 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	this.onChangeFinish = function(p_type, p_inscreeenspace, opt_displaylayer)
 	{
 		var scl = this.getScale();
+		
+		if (typeof hideLoaderImg != "undefined") { hideLoaderImg(); }
 
 		if (this.normalFinishModes.indexOf(p_type) >= 0) {
 			this.drawLabels(p_inscreeenspace, scl, opt_displaylayer);

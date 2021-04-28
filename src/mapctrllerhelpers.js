@@ -933,7 +933,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 	this.maplyrnames = p_config.lnames;
 	this.mapctrlssetup = p_config.controlssetup;
 	this.mapcontroller = p_mapctrlr;
-	this.do_debug = true;
+	this.do_debug = false;
 	
 	this.i18nmsgs = {
 		"pt": {
@@ -1014,7 +1014,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		return ret;		
 	};
 	
-	this.createLayerTOCEntry = function(p_lname, p_styidx, opt_pinned) {
+	this.createLayerTOCEntry = function(p_lname, p_styidx) {
 		
 		if (this.layer_to_tocentries[p_lname] === undefined) {
 			this.layer_to_tocentries[p_lname] = [];
@@ -1026,17 +1026,22 @@ function StyleVisibility(p_mapctrlr, p_config) {
 			this.toc_entries[p_styidx] = {
 				lname: p_lname, pt: 0, lin: 0, pol: 0, 
 				undef: 0, lblsample: null,
-				pinned: (opt_pinned ? true : false),
 				visible: true
 			};
 		}
+		
+		return this.toc_entries[p_styidx];
+		
 	};
 	
 	// toggle layers or styles: if only opt_lname is given, toggles entire layer,
-	//  if opt_style_index is given it toggles just that style
+	//  if opt_style_index is given it toggles just that style.
+	// If both are given, that will be intepreted as "just that style"
 	this.toggleVisibility = function(opt_lname, opt_style_index) {
-
-		let ret=false, lviz, tocentries, lname=null;
+		
+		if (typeof showLoaderImg != "undefined") { showLoaderImg(); }
+		
+		let ret=null, lviz, tocentries, res, lname=null;
 		if (opt_lname) {
 			lname = opt_lname;	
 		} else if (opt_style_index) {
@@ -1052,73 +1057,86 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		
 		if (lname === null) {
 			throw new Error("toggleVisibility -- unidentifiable layer name from given params (layername, style index):", opt_lname, opt_style_index);
-		}			
-		
-		if (!this.mapcontroller.checkLayerVisibility(lname)) {
-			tocentries = this.layer_to_tocentries[lname];
-			if (tocentries != null) {
-				for (let ti=0; ti<tocentries.length; ti++) {
-					if (this.toc_entries[tocentries[ti]].visible) {
-						ret = true;
-					}
-					this.toc_entries[tocentries[ti]].visible = false;
-				}		
-			}
-		} else {		
-			if (opt_style_index) {
+		}
+
+		if (opt_style_index == null) {			
+			if (this.isLyrTOCVisibile(lname)) {	
+				ret = false;
+				this.holdLayerVisibility(lname);
+			} else {
 				ret = true;
-				this.toc_entries[opt_style_index].visible = !this.toc_entries[opt_style_index].visible;
-			} else if (opt_lname) {
-				tocentries = this.layer_to_tocentries[opt_lname];
-				if (tocentries != null) {
-					for (let ti=0; ti<tocentries.length; ti++) {
-						ret = true;
-						this.toc_entries[tocentries[ti]].visible = !this.toc_entries[tocentries[ti]].visible;
-					}		
-				}
-			}		
+				this.releaseLayerVisibility(lname);
+			}
+		} else {
+			if (this.isLyrTOCStyleVisibile(opt_style_index)) {			
+				ret = false;
+				this.holdStyIdxVisibility(opt_style_index);
+			} else {
+				ret = true;
+				this.releaseStyIdxVisibility(opt_style_index);
+			}
+		}
+		
+		if (ret != null) {
+			if (ret) {
+				this.mapcontroller.refresh(false);  
+			} else {
+				this.mapcontroller.redraw(false, true);
+				this.mapcontroller.onChangeFinish("toggleRedrawTOC");
+			}
 		}
 		
 		return ret;
 	};
 	
-	this._holdReleaseVisibility	 = function(p_tovisible, p_lname) {
+	this._holdReleaseLayerVisibility = function(p_tovisible, p_lname) {
 		
-		const lviz = this.mapcontroller.checkLayerVisibility(p_lname);
+		if (p_tovisible == null || typeof p_tovisible != "boolean") {
+			throw new Error("StyleVisibility._holdReleaseLayerVisibility -- p_tovisible missing or not boolean");
+		}
+
+		if (p_lname == null || p_lname.length==0 || typeof p_lname != "string") {
+			throw new Error("StyleVisibility._holdReleaseLayerVisibility -- p_lname missing or not string");
+		}
+		
 		const tocentries = this.layer_to_tocentries[p_lname];
 		let ret = false
-		if (!lviz) {			
-			if (tocentries != null) {
-				for (let ti=0; ti<tocentries.length; ti++) {
-					this.toc_entries[tocentries[ti]].visible = false;
-				}
-			}
-		} else {
-			if (tocentries != null) {
-				for (let ti=0; ti<tocentries.length; ti++) {
-					if (this.toc_entries[tocentries[ti]].visible) {
-						if (!p_tovisible) {
-							this.toc_entries[tocentries[ti]].visible = false;
-							ret = true;
-						}
-					} else {
-						if (p_tovisible) {
-							this.toc_entries[tocentries[ti]].visible = true;
-							ret = true;
-						}
+
+		if (tocentries != null) {
+			for (let ti=0; ti<tocentries.length; ti++) {
+				if (this.toc_entries[tocentries[ti]].visible) {
+					if (!p_tovisible) {
+						this.toc_entries[tocentries[ti]].visible = false;
+						ret = true;
+					}
+				} else {
+					if (p_tovisible) {
+						this.toc_entries[tocentries[ti]].visible = true;
+						ret = true;
 					}
 				}
 			}
+		}
+		
+		if (ret) {
+			this.mapcontroller.lconfig[p_lname] = p_tovisible;
 		}
 		
 		return ret;
 	}
 	
-	this.holdVisibility = function(p_lname) {
-		return this._holdReleaseVisibility(false, p_lname);
+	this.holdLayerVisibility = function(p_lname) {
+		return this._holdReleaseLayerVisibility(false, p_lname);
 	};
-	this.releaseVisibility = function(p_lname) {
-		return this._holdReleaseVisibility(true, p_lname);
+	this.releaseLayerVisibility = function(p_lname) {
+		return this._holdReleaseLayerVisibility(true, p_lname);
+	};
+
+	this.holdStyIdxVisibility = function(p_sty_idx) {
+		this.toc_entries[p_sty_idx].visible = false;
+	};
+	this.releaseStyIdxVisibility = function(p_sty_idx) {
+		this.toc_entries[p_sty_idx].visible = true;
 	};
 
 	this.getGeomType = function(p_idx) {	
@@ -1194,7 +1212,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 	
 	this.genCanvasTOCElem = function(p_d, p_d2, p_backing_obj, p_cnvidx, p_legcell_dims, p_ismapvisible, p_layer_notviz_image_params, p_tcfn) {
 		
-		let canvasel, ctx, cnvidx = p_cnvidx + 1, wholelyr_tocviz, lyr_tocviz, do_activate;
+		let canvasel, ctx, cnvidx = p_cnvidx + 1, lyr_tocviz;
 		
 		// Legend symbol
 		canvasel = document.createElement('canvas');
@@ -1205,17 +1223,17 @@ function StyleVisibility(p_mapctrlr, p_config) {
 			
 		ctx = canvasel.getContext('2d');
 
+		lyr_tocviz = this.isLyrTOCStyleVisibile(p_backing_obj.sty._index) && p_ismapvisible && p_backing_obj.gtype != "NONE";
+
 		if (this.do_debug) {
 			console.log(" === START genCanvasTOCElem =========");
 			console.log("  LAYERNAME:", p_backing_obj.sty.lname);
 			console.log("  TOCVIZ:", this.isLyrTOCVisibile(p_backing_obj.sty.lname));
 			console.log("  gtype, isMapvisible:", p_backing_obj.gtype, p_ismapvisible);
+			console.log("  toc viz:", lyr_tocviz);
 			console.log(" === END ===========================");
 		}
 		
-		//wholelyr_tocviz = (this.isLyrTOCVisibile(p_backing_obj.sty.lname) && p_ismapvisible && p_backing_obj.gtype != "NONE");
-		lyr_tocviz = this.toc_entries[p_backing_obj.sty._index].visible && p_ismapvisible && p_backing_obj.gtype != "NONE";
-
 		if (lyr_tocviz) {
 			layerActivateTOC(p_d, ctx, p_backing_obj, this.mapcontroller.fillpatterns, p_legcell_dims.w, p_legcell_dims.h );
 		} else {
@@ -1232,10 +1250,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 			(function(p_self, p_canvasel, p_lname, p_styindex) {						
 				attEventHandler(p_canvasel, 'click',
 					function(evt) {
-						if (p_self.toggleVisibility(p_lname, p_styindex)) {
-							p_self.mapcontroller.redraw(false, true);
-							p_self.mapcontroller.onChangeFinish("toggleTOC");
-						} 
+						p_self.toggleVisibility(p_lname, p_styindex);
 					}
 				);
 			})(this, canvasel, p_backing_obj.sty.lname, p_backing_obj.sty._index);
@@ -1424,20 +1439,12 @@ function StyleVisibility(p_mapctrlr, p_config) {
 					
 					// if no features found, don't create  TOC entry
 					let featcount = this.mapcontroller.featuresFound(lname);
-					if (!this.toc_entries[sty._index].pinned) {
-						if (featcount < 1) {
-							console.warn("[UPD TOC] layer", lname, ", removing TOC entry - no features found");
-							continue;
-						}
-					}
-
 					if (this.do_debug) {
 						console.log("[UPD TOC] layer", lname, ", ordered styles count", ordredstyles.length);
 					}
 
 					if (ordredstyles.length > 1) {
 						
-						// only layer title for pinned layer
 						if (featcount == 0) {
 
 							if (sty["lyrlabelkey"] !== undefined && sty["lyrlabelkey"].length > 0) {
@@ -1731,6 +1738,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 						setClass(d, "visctrl-entry");
 						setClass(d, "unselectable");
 						
+						/*
 						if (backing_obj.nofeats) {
 							
 							setClass(d, "visctrl-nofeats");
@@ -1745,6 +1753,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 							})(this, d, this.mapcontroller, backing_obj.activationenv);
 
 						} else {
+						*/
 							
 							d2 = document.createElement("div");	
 							if (this.isLyrTOCVisibile(backing_obj.lname)) {
@@ -1752,24 +1761,25 @@ function StyleVisibility(p_mapctrlr, p_config) {
 							} else {
 								setClass(d2, "inviz");
 							}
+
 							d.insertBefore(d2, d.firstChild);	
 						
 							// attach event for toggling entire layer viz, all style classes
-							(function(p_self, p_el, p_lname) {						
+							(function(p_self, p_el, p_lname) {	
+								p_el.setAttribute("id", "lyrklk_"+p_lname);
 								attEventHandler(p_el, 'click',
 									function(evt) {
-										if (p_self.toggleVisibility(p_lname, null)) {
-											p_self.mapcontroller.redraw(false, true);
-											p_self.mapcontroller.onChangeFinish("toggleTOC");										
-										} 
+										p_self.toggleVisibility(p_lname, null);
 									}
 								);
 							})(this, d, backing_obj.lname);
-						}
+						// }
 						
 					} else if (backing_obj.lblstyle == "SUBENTRY") {
 						setClass(d, "visctrl-subentry")
 					}
+					
+					isMapVisible = this.mapcontroller.checkLayerVisibility(backing_obj.lname);
 
 					if (backing_obj.colspan > 1) {
 						d.colSpan = backing_obj.colspan * leg_dims.cols;
@@ -1777,6 +1787,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 						// espaço simbolo
 						d2 = document.createElement("td");	
 						r.appendChild(d2);
+						
 						cnvidx = this.genCanvasTOCElem(d, d2, backing_obj, cnvidx, legcfg.legcell_dims, isMapVisible, layer_notviz_image_params, tcfn);
 					}					
 					currcol = currcol + backing_obj.colspan;											
@@ -1841,7 +1852,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		}	
 	};
 
-	let lc, cs, k_lname, pinned;
+	let lc, cs, k_lname, te;
 	for (let kli=0; kli < this.maplyrnames.length; kli++) {
 		
 		k_lname = this.maplyrnames[kli];
@@ -1851,10 +1862,9 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		}
 		
 		lc = this.maplyrconfig[k_lname];
-		pinned = (lc["pinned"] !== undefined ? lc["pinned"] : false);
 		if (lc["style"] !== undefined && lc["style"] != null) {
 			lc["style"]["_index"] = this.stylecount;				
-			this.createLayerTOCEntry(k_lname, this.stylecount, pinned);
+			te = this.createLayerTOCEntry(k_lname, this.stylecount);
 			this.stylecount++;
 			if (this.styles[k_lname] === undefined) {
 				this.styles[k_lname] = [];
@@ -1864,8 +1874,10 @@ function StyleVisibility(p_mapctrlr, p_config) {
 					"_index": lc["style"]["_index"],
 					"lyrlabelkey": (lc["labelkey"] !== undefined ? lc["labelkey"] : ""),
 					"thematic_control": (lc["thematic_control"] !== undefined ? lc["thematic_control"] : null),
-					"style": clone(lc["style"])
-				});				
+					"style": clone(lc["style"]),
+					"defaultvisible": lc["visible"]
+				});	
+			te.visible = lc["visible"];
 		} else if (lc["condstyle"] !== undefined && lc["condstyle"] != null) {
 			
 			cs = lc["condstyle"];
@@ -1879,15 +1891,17 @@ function StyleVisibility(p_mapctrlr, p_config) {
 				}
 				if (k_cstype == "default") {
 					cs[k_cstype]["_index"] = this.stylecount;
-					this.createLayerTOCEntry(k_lname, this.stylecount, pinned);
+					te = this.createLayerTOCEntry(k_lname, this.stylecount);
 					this.stylecount++;
 					this.styles[k_lname].push({
 							"lname": k_lname,
 							"_index": cs[k_cstype]["_index"],
 							"lyrlabelkey": (lc["labelkey"] !== undefined ? lc["labelkey"] : ""),
 							"thematic_control": (lc["thematic_control"] !== undefined ? lc["thematic_control"] : null),
-							"style": clone(cs[k_cstype])
+							"style": clone(cs[k_cstype]),
+							"defaultvisible": lc["visible"]
 						});
+					te.visible = lc["visible"];
 				} else if (k_cstype == "perattribute") {
 					for (let k_attrname in cs[k_cstype]) {
 						if (k_attrname == "_#ALL#_") {
@@ -1895,15 +1909,17 @@ function StyleVisibility(p_mapctrlr, p_config) {
 						}
 						for (let i_class = 0; i_class < cs[k_cstype][k_attrname].length; i_class++) {
 							cs[k_cstype][k_attrname][i_class]["style"]["_index"] = this.stylecount;
-							this.createLayerTOCEntry(k_lname, this.stylecount, pinned);
+							te = this.createLayerTOCEntry(k_lname, this.stylecount);
 							this.stylecount++;
 							this.styles[k_lname].push({
-									"lname": k_lname,
-									"_index": cs[k_cstype][k_attrname][i_class]["style"]["_index"],
-									"lyrlabelkey": (lc["labelkey"] !== undefined ? lc["labelkey"] : ""),
-									"thematic_control": (lc["thematic_control"] !== undefined ? lc["thematic_control"] : null),
-									"style": clone(cs[k_cstype][k_attrname][i_class]["style"])
-								});
+								"lname": k_lname,
+								"_index": cs[k_cstype][k_attrname][i_class]["style"]["_index"],
+								"lyrlabelkey": (lc["labelkey"] !== undefined ? lc["labelkey"] : ""),
+								"thematic_control": (lc["thematic_control"] !== undefined ? lc["thematic_control"] : null),
+								"style": clone(cs[k_cstype][k_attrname][i_class]["style"]),
+								"defaultvisible": lc["visible"]
+							});
+							te.visible = lc["visible"];
 						} 
 					}
 				}
@@ -1937,19 +1953,20 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		} else if (lc["label"] !== undefined && lc["label"] != null && lc["label"]["style"] !== undefined && lc["label"]["style"] != null ) {
 
 			lc["label"]["style"]["_index"] = this.stylecount;		
-			pinned = (lc["pinned"] !== undefined ? lc["pinned"] : false);			
 			this.stylecount++;
 			if (this.styles[k_lname] === undefined) {
 				this.styles[k_lname] = [];
 			}
-			this.createLayerTOCEntry(k_lname, lc["label"]["style"]["_index"], pinned);
+			te = this.createLayerTOCEntry(k_lname, lc["label"]["style"]["_index"]);
 			this.styles[k_lname].push({
-					"lname": k_lname,
-					"_index": lc["label"]["style"]["_index"],
-					"lyrlabelkey": (lc["labelkey"] !== undefined ? lc["labelkey"] : ""),
-					"thematic_control": (lc["thematic_control"] !== undefined ? lc["thematic_control"] : null),
-					"style": clone(lc["label"]["style"])
+				"lname": k_lname,
+				"_index": lc["label"]["style"]["_index"],
+				"lyrlabelkey": (lc["labelkey"] !== undefined ? lc["labelkey"] : ""),
+				"thematic_control": (lc["thematic_control"] !== undefined ? lc["thematic_control"] : null),
+				"style": clone(lc["label"]["style"]),
+				"defaultvisible": lc["visible"]
 			});
+			te.visible = lc["visible"];
 				
 		}
 	}
