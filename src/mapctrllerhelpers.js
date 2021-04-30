@@ -929,7 +929,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 	this.toc_entries = {}; // per style index dict
 	
 	this.widget_id = null;
-	this.maplyrconfig = p_config.lconfig;
+	//this.maplyrconfig = p_config.lconfig;
 	this.maplyrnames = p_config.lnames;
 	this.mapctrlssetup = p_config.controlssetup;
 	this.mapcontroller = p_mapctrlr;
@@ -1041,7 +1041,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		
 		if (typeof showLoaderImg != "undefined") { showLoaderImg(); }
 		
-		let ret=null, lviz, tocentries, res, lname=null;
+		let dorefresh=null, lviz, tocentries, res, lname=null;
 		if (opt_lname) {
 			lname = opt_lname;	
 		} else if (opt_style_index) {
@@ -1061,24 +1061,24 @@ function StyleVisibility(p_mapctrlr, p_config) {
 
 		if (opt_style_index == null) {			
 			if (this.isLyrTOCVisibile(lname)) {	
-				ret = false;
+				dorefresh = false;
 				this.holdLayerVisibility(lname);
 			} else {
-				ret = true;
+				dorefresh = true;
 				this.releaseLayerVisibility(lname);
 			}
 		} else {
 			if (this.isLyrTOCStyleVisibile(opt_style_index)) {			
-				ret = false;
+				dorefresh = false;
 				this.holdStyIdxVisibility(opt_style_index);
 			} else {
-				ret = true;
+				dorefresh = false;
 				this.releaseStyIdxVisibility(opt_style_index);
 			}
 		}
-		
-		if (ret != null) {
-			if (ret) {
+
+		if (dorefresh != null) {
+			if (dorefresh) {
 				this.mapcontroller.refresh(false);  
 			} else {
 				this.mapcontroller.redraw(false, true);
@@ -1086,7 +1086,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 			}
 		}
 		
-		return ret;
+		return dorefresh;
 	};
 	
 	this._holdReleaseLayerVisibility = function(p_tovisible, p_lname) {
@@ -1119,7 +1119,8 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		}
 		
 		if (ret) {
-			this.mapcontroller.lconfig[p_lname] = p_tovisible;
+			const lc = this.mapcontroller.getLayerConfig(p_lname);
+			lc.visible = p_tovisible;
 		}
 		
 		return ret;
@@ -1460,7 +1461,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 								backing_obj.gtype = null;
 								backing_obj.grpbndry = 'START';
 								backing_obj.nofeats = true;
-								backing_obj.activationenv = (this.maplyrconfig[lname]["activationenv"] !== undefined ? this.maplyrconfig[lname]["activationenv"] : null);
+								backing_obj.activationenv = (this.mapcontroller.getLayerConfig(lname)["activationenv"] !== undefined ? this.mapcontroller.getLayerConfig(lname)["activationenv"] : null);
 								backing_obj_arr.push(clone(backing_obj));
 								additions_to_backobj++;
 							}
@@ -1538,7 +1539,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 								backing_obj.colspan = 1;
 								backing_obj.lblsample = this.toc_entries[oidx].lblsample;
 								backing_obj.gtype = gtype;
-								backing_obj.markerf = (this.maplyrconfig[lname]["markerfunction"] !== undefined ? this.maplyrconfig[lname]["markerfunction"] : null);
+								backing_obj.markerf = (this.mapcontroller.getLayerConfig(lname)["markerfunction"] !== undefined ? this.mapcontroller.getLayerConfig(lname)["markerfunction"] : null);
 								backing_obj.sty = sty;
 								backing_obj.grpbndry = 'NONE';
 								backing_obj.nofeats = false;
@@ -1569,7 +1570,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 						backing_obj.colspan = 1;
 						backing_obj.lblsample = this.toc_entries[oidx].lblsample;
 						backing_obj.gtype = gtype;
-						backing_obj.markerf = (this.maplyrconfig[lname]["markerfunction"] !== undefined ? this.maplyrconfig[lname]["markerfunction"] : null);
+						backing_obj.markerf = (this.mapcontroller.getLayerConfig(lname)["markerfunction"] !== undefined ? this.mapcontroller.getLayerConfig(lname)["markerfunction"] : null);
 						backing_obj.sty = sty;
 						backing_obj.grpbndry = 'NONE';
 						backing_obj.nofeats = false;
@@ -1596,7 +1597,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 							backing_obj.colspan = 1;
 							backing_obj.lblsample = this.toc_entries[_oidx].lblsample;
 							backing_obj.gtype = gtype;
-							backing_obj.markerf = (this.maplyrconfig[lname]["markerfunction"] !== undefined ? this.maplyrconfig[lname]["markerfunction"] : null);
+							backing_obj.markerf = (this.mapcontroller.getLayerConfig(lname)["markerfunction"] !== undefined ? this.mapcontroller.getLayerConfig(lname)["markerfunction"] : null);
 							backing_obj.sty = _sty;
 							backing_obj.grpbndry = 'NONE';
 							backing_obj.nofeats = false;
@@ -1630,7 +1631,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 					backing_obj.colspan = 1;
 					backing_obj.lblsample = _lbs;
 					backing_obj.gtype = gtype;
-					backing_obj.markerf = (this.maplyrconfig[lname]["markerfunction"] !== undefined ? this.maplyrconfig[lname]["markerfunction"] : null);
+					backing_obj.markerf = (this.mapcontroller.getLayerConfig(lname)["markerfunction"] !== undefined ? this.mapcontroller.getLayerConfig(lname)["markerfunction"] : null);
 					backing_obj.sty = _sty;
 					backing_obj.grpbndry = 'NONE';
 					backing_obj.nofeats = false;
@@ -1857,11 +1858,11 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		
 		k_lname = this.maplyrnames[kli];
 		
-		if (!this.maplyrconfig.hasOwnProperty(k_lname))	{
+		if (!this.mapcontroller.hasLayerConfig(k_lname))	{
 			continue;
 		}
 		
-		lc = this.maplyrconfig[k_lname];
+		lc = this.mapcontroller.getLayerConfig(k_lname);
 		if (lc["style"] !== undefined && lc["style"] != null) {
 			lc["style"]["_index"] = this.stylecount;				
 			te = this.createLayerTOCEntry(k_lname, this.stylecount);

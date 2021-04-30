@@ -1240,6 +1240,10 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		return this.lconfig[p_layername];
 	};
 
+	this.hasLayerConfig = function(p_layername) {
+		return this.lconfig[p_layername] !== undefined;
+	};
+
 	this.checkLayerDrawingCondition = function(p_layername) {
 		var ret = "NOSTYLE";
 		var lyrconf = this.getLayerConfig(p_layername);
@@ -1274,10 +1278,9 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				scale_vlst.push(this.lconfig[lname]);
 			}		
 		}
-		
+
 		var i = 0;
-		while (scale_vlst[i] !== undefined && scale_vlst[i] != null) 
-		{
+		while (scale_vlst[i] !== undefined && scale_vlst[i] != null) {
 			if (this.lconfig[scale_vlst[i]].onlydata !== undefined && this.lconfig[scale_vlst[i]].onlydata) {
 				out_drawable_layer_lst.push(scale_vlst[i]);
 			} else {		
@@ -1287,8 +1290,6 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			}
 			i++;
 		}
-
-		//console.log(out_drawable_layer_lst);
 
 	};
 	
