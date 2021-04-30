@@ -1473,6 +1473,13 @@ function StyleVisibility(p_mapctrlr, p_config) {
 							
 							oidx = ordredstyles[j][0];
 							sty = ordredstyles[j][1];
+
+							if (this.getTotalFeatsPerIdx(oidx) < 1) {
+								if (this.do_debug) {
+									console.log("[UPD TOC] layer", lname, ", sty.index", oidx, "zero elems in elementstats");
+								}
+								continue;
+							}
 							
 							tmpgtype = this.getGeomType(oidx);	
 							if (gtype == null || tmpgtype != "NONE") {

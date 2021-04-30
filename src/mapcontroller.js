@@ -1415,14 +1415,12 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			case 3:
 				partc_idx = 0;
 				partc_cnt = p_points_obj.length;
-				while (partc_idx < partc_cnt) 
-				{
+				while (partc_idx < partc_cnt) {
 					partcollection = p_points_obj[partc_idx];
 					outpartc = [];
 					part_idx = 0;
 					part_cnt = partcollection.length;
-					while (part_idx < part_cnt-1) 
-					{
+					while (part_idx < part_cnt) {
 						part = partcollection[part_idx];
 						crd_idx = 0;
 						outpart = [];
@@ -1685,8 +1683,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 					if (p_content_obj.crds.length < 1 || p_content_obj.crds[0].length < 1 || p_content_obj.crds[0][0].length < 1 || typeof p_content_obj.crds[0][0][0] != 'number') {
 						throw new Error("_storeFeat -- "+String.format(this.msg("GEOMSTRUCT"), storedfeatdata.type) );
 					}
-					for (var pcoib=0; pcoib<p_content_obj.crds.length; pcoib++) 
-					{
+					for (var pcoib=0; pcoib<p_content_obj.crds.length; pcoib++) {
 						tmp_pcol = p_content_obj.crds[pcoib];
 						for (var pcoia=0; pcoia<tmp_pcol.length; pcoia++) {
 							if (tmp_pcol[pcoia].length < 4) {
