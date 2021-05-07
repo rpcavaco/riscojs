@@ -937,7 +937,8 @@ function StyleVisibility(p_mapctrlr, p_config) {
 	
 	this.i18nmsgs = {
 		"pt": {
-			"NONEW": "'StyleVisibility' é classe, o seu construtor foi invocado sem 'new'",					
+			"NONEW": "'StyleVisibility' é classe, o seu construtor foi invocado sem 'new'",	
+			"NOFEATS": "zero elementos no mapa"				
 		}
 	};
 	this.msg = function(p_msgkey) {
@@ -1461,6 +1462,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 								backing_obj.gtype = null;
 								backing_obj.grpbndry = 'START';
 								backing_obj.nofeats = true;
+								backing_obj.viz = this.isLyrTOCVisibile(backing_obj.lname);
 								backing_obj.activationenv = (this.mapcontroller.getLayerConfig(lname)["activationenv"] !== undefined ? this.mapcontroller.getLayerConfig(lname)["activationenv"] : null);
 								backing_obj_arr.push(clone(backing_obj));
 								additions_to_backobj++;
@@ -1527,6 +1529,8 @@ function StyleVisibility(p_mapctrlr, p_config) {
 									backing_obj.lblsample = backing_obj.sty = null;
 									backing_obj.gtype = null;
 									backing_obj.grpbndry = 'START';
+									backing_obj.nofeats = false;
+									backing_obj.viz = this.isLyrTOCVisibile(backing_obj.lname);
 									backing_obj_arr.push(clone(backing_obj));
 									additions_to_backobj++;
 								}
@@ -1542,6 +1546,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 								} else {
 									backing_obj.lbl = p_i18n_function(sty.style["labelkey"]);
 								}
+								backing_obj.lname = lname;
 								backing_obj.lblstyle = 'SUBENTRY';
 								backing_obj.colspan = 1;
 								backing_obj.lblsample = this.toc_entries[oidx].lblsample;
@@ -1550,6 +1555,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 								backing_obj.sty = sty;
 								backing_obj.grpbndry = 'NONE';
 								backing_obj.nofeats = false;
+								backing_obj.viz = this.isLyrTOCVisibile(backing_obj.lname);
 								backing_obj.activationenv = null;
 								backing_obj_arr.push(clone(backing_obj));	
 								additions_to_backobj++;
@@ -1581,6 +1587,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 						backing_obj.sty = sty;
 						backing_obj.grpbndry = 'NONE';
 						backing_obj.nofeats = false;
+						backing_obj.viz = this.isLyrTOCVisibile(backing_obj.lname);
 						backing_obj.activationenv = null;
 						backing_obj_arr.push(clone(backing_obj));
 						additions_to_backobj++;
@@ -1608,6 +1615,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 							backing_obj.sty = _sty;
 							backing_obj.grpbndry = 'NONE';
 							backing_obj.nofeats = false;
+							backing_obj.viz = this.isLyrTOCVisibile(backing_obj.lname);	
 							backing_obj.activationenv = null;
 							backing_obj_arr.push(clone(backing_obj));
 							additions_to_backobj++;
@@ -1642,6 +1650,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 					backing_obj.sty = _sty;
 					backing_obj.grpbndry = 'NONE';
 					backing_obj.nofeats = false;
+					backing_obj.viz = this.isLyrTOCVisibile(backing_obj.lname);
 					backing_obj.activationenv = null;
 					backing_obj_arr.push(clone(backing_obj));
 					additions_to_backobj++;
@@ -1745,6 +1754,12 @@ function StyleVisibility(p_mapctrlr, p_config) {
 						
 						setClass(d, "visctrl-entry");
 						setClass(d, "unselectable");
+
+						if (backing_obj.viz && backing_obj.nofeats) {
+							setClass(d, "visctrl-nofeats");    
+							setClass(d, "tooltip-left");    
+							d.setAttribute("data-tooltip", this.msg("NOFEATS"))
+						}
 						
 						/*
 						if (backing_obj.nofeats) {
