@@ -940,7 +940,8 @@ function StyleVisibility(p_mapctrlr, p_config) {
 			"NONEW": "'StyleVisibility' é classe, o seu construtor foi invocado sem 'new'",	
 			"NOFEATS": "zero elementos no mapa",			
 			"ALTVIZ": "alternar visibilidade",			
-			"ALTVIZCLS": "alternar visibilidade classe"				
+			"ALTVIZCLS": "alternar visibilidade classe",
+			"AOI": "zoom à camada"				
 		}
 	};
 	this.msg = function(p_msgkey) {
@@ -1125,7 +1126,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 			const lc = this.mapcontroller.getLayerConfig(p_lname);
 			lc.visible = p_tovisible;
 		}
-		
+
 		return ret;
 	}
 	
@@ -1302,29 +1303,24 @@ function StyleVisibility(p_mapctrlr, p_config) {
 
 		let leg_container = null;	
 		let oidx;
-		let t, r, s, d, d2, w, x, capparent, sty, lyrtitle, gtype=null, tmpgtype;
-		let currlayercaption = null;
+		let t, r, s, d, d2, d3, capparent, sty, lyrtitle, gtype=null, tmpgtype;
 		let lname, transients_found = 0, labelkey_found, possibly_emptysubentries_oidx;
-		let topPadLayerHeading = '6px';
-		let botPadLayerHeading = '4px';
 		let ordredstyles = [];
-		let dobreak = false;
 		let isMapVisible = false;
 		let lnamesidx = 0;
-		let lentries_count = 0;
 		let thematic_widget = null;
 		
 		let legend_control_defaults = this.mapcontroller.legend_control_defaults;
 		let layer_notviz_image_params = this.mapcontroller.layer_notviz_image_params;
 		
-		let items = 0, cnvidx = -1, legendcaption_created=false;
+		let cnvidx = -1, legendcaption_created=false;
 		let leg_par, legp_style, leg_tmp_elem, leg_tmp_style;
 		
 		let leg_dims = { cols:0 };
 
 		const legcfg = this.mapcontroller.mapctrlsmgr.legendcfg;		
 		const visibility_widget = document.getElementById(legcfg.visibility_widget_name);
-		const legend_ctrl = visibility_widget.parentNode;
+		// const legend_ctrl = visibility_widget.parentNode;
 		
 		if (legend_control_defaults.entrywidth === undefined) {
 			leg_tmp_elem = document.querySelector(String.format('#{0} td', legcfg.visibility_widget_name));
@@ -1469,7 +1465,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 								backing_obj.grpbndry = 'START';
 								backing_obj.nofeats = true;
 								backing_obj.viz = this.isLyrTOCVisibile(backing_obj.lname);
-								backing_obj.activationenv = (this.mapcontroller.getLayerConfig(lname)["activationenv"] !== undefined ? this.mapcontroller.getLayerConfig(lname)["activationenv"] : null);
+								backing_obj.aoi = (this.mapcontroller.getLayerConfig(lname)["aoi"] !== undefined ? this.mapcontroller.getLayerConfig(lname)["aoi"] : null);
 								backing_obj_arr.push(clone(backing_obj));
 								additions_to_backobj++;
 							}
@@ -1536,6 +1532,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 									backing_obj.gtype = null;
 									backing_obj.grpbndry = 'START';
 									backing_obj.nofeats = false;
+									backing_obj.aoi = (this.mapcontroller.getLayerConfig(lname)["aoi"] !== undefined ? this.mapcontroller.getLayerConfig(lname)["aoi"] : null);
 									backing_obj.viz = this.isLyrTOCVisibile(backing_obj.lname);
 									backing_obj_arr.push(clone(backing_obj));
 									additions_to_backobj++;
@@ -1562,7 +1559,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 								backing_obj.grpbndry = 'NONE';
 								backing_obj.nofeats = false;
 								backing_obj.viz = this.isLyrTOCVisibile(backing_obj.lname);
-								backing_obj.activationenv = null;
+								backing_obj.aoi = null;
 								backing_obj_arr.push(clone(backing_obj));	
 								additions_to_backobj++;
 							
@@ -1594,7 +1591,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 						backing_obj.grpbndry = 'NONE';
 						backing_obj.nofeats = false;
 						backing_obj.viz = this.isLyrTOCVisibile(backing_obj.lname);
-						backing_obj.activationenv = null;
+						backing_obj.aoi = (this.mapcontroller.getLayerConfig(lname)["aoi"] !== undefined ? this.mapcontroller.getLayerConfig(lname)["aoi"] : null);
 						backing_obj_arr.push(clone(backing_obj));
 						additions_to_backobj++;
 					}
@@ -1622,7 +1619,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 							backing_obj.grpbndry = 'NONE';
 							backing_obj.nofeats = false;
 							backing_obj.viz = this.isLyrTOCVisibile(backing_obj.lname);	
-							backing_obj.activationenv = null;
+							backing_obj.aoi = (this.mapcontroller.getLayerConfig(lname)["aoi"] !== undefined ? this.mapcontroller.getLayerConfig(lname)["aoi"] : null);
 							backing_obj_arr.push(clone(backing_obj));
 							additions_to_backobj++;
 						
@@ -1657,7 +1654,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 					backing_obj.grpbndry = 'NONE';
 					backing_obj.nofeats = false;
 					backing_obj.viz = this.isLyrTOCVisibile(backing_obj.lname);
-					backing_obj.activationenv = null;
+					backing_obj.aoi = (this.mapcontroller.getLayerConfig(lname)["aoi"] !== undefined ? this.mapcontroller.getLayerConfig(lname)["aoi"] : null);
 					backing_obj_arr.push(clone(backing_obj));
 					additions_to_backobj++;
 				}				
@@ -1785,43 +1782,50 @@ function StyleVisibility(p_mapctrlr, p_config) {
 							s.setAttribute("data-tooltip", this.msg("ALTVIZ"))
 						}
 						
-						/*
-						if (backing_obj.nofeats) {
 							
-							setClass(d, "visctrl-nofeats");
-
-							// attach event for toggling entire layer viz, all style classes
-							(function(p_self, p_el, p_mapctrlr, p_env) {						
-								attEventHandler(p_el, 'click',
-									function(evt) {
-										p_mapctrlr.refreshFromMinMax(p_env[0], p_env[1], p_env[2], p_env[3]);
-									}
-								);
-							})(this, d, this.mapcontroller, backing_obj.activationenv);
-
+						d2 = document.createElement("div");	
+						if (this.isLyrTOCVisibile(backing_obj.lname)) {
+							setClass(d2, "viz");
 						} else {
-						*/
-							
-							d2 = document.createElement("div");	
-							if (this.isLyrTOCVisibile(backing_obj.lname)) {
-								setClass(d2, "viz");
-							} else {
-								setClass(d2, "inviz");
-							}
-							setClass(d2, "tooltip-left");    
-							d2.setAttribute("data-tooltip", this.msg("ALTVIZ"))
+							setClass(d2, "inviz");
+						}
+						setClass(d2, "tooltip-left");    
+						d2.setAttribute("data-tooltip", this.msg("ALTVIZ"))
 
-							d.insertBefore(d2, d.firstChild);	
-						
-							// attach event for toggling entire layer viz, all style classes
-							(function(p_self, p_el, p_lname) {	
-								p_el.setAttribute("id", "lyrklk_"+p_lname);
+						d.insertBefore(d2, d.firstChild);	
+
+						// AOI
+						if (backing_obj.aoi) {
+
+							d3 = document.createElement("div");
+							setClass(d3, "visctrl-aoi");
+							setClass(d3, "tooltip-left");    
+							d3.setAttribute("data-tooltip", this.msg("AOI"));
+
+							(function(p_self, p_el, p_mapctrlr, p_env, p_lname) {						
 								attEventHandler(p_el, 'click',
 									function(evt) {
-										p_self.toggleVisibility(p_lname, null);
+										p_self.releaseLayerVisibility(p_lname);
+										if (typeof showLoaderImg != "undefined") { showLoaderImg(); }
+										p_mapctrlr.refreshFromMinMax(p_env[0], p_env[1], p_env[2], p_env[3]);
+										finishEvent(evt);
 									}
 								);
-							})(this, d, backing_obj.lname);
+							})(this, d3, this.mapcontroller, backing_obj.aoi, backing_obj.lname);
+
+							d.appendChild(d3);		
+						}
+
+						// attach event for toggling entire layer viz, all style classes
+						(function(p_self, p_el, p_lname) {	
+							p_el.setAttribute("id", "lyrklk_"+p_lname);
+							attEventHandler(p_el, 'click',
+								function(evt) {
+									p_self.toggleVisibility(p_lname, null);
+									finishEvent(evt);
+								}
+							);
+						})(this, d, backing_obj.lname);
 						// }
 						
 					} else if (backing_obj.lblstyle == "SUBENTRY") {
