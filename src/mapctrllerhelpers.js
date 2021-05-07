@@ -938,7 +938,9 @@ function StyleVisibility(p_mapctrlr, p_config) {
 	this.i18nmsgs = {
 		"pt": {
 			"NONEW": "'StyleVisibility' é classe, o seu construtor foi invocado sem 'new'",	
-			"NOFEATS": "zero elementos no mapa"				
+			"NOFEATS": "zero elementos no mapa",			
+			"ALTVIZ": "alternar visibilidade",			
+			"ALTVIZCLS": "alternar visibilidade classe"				
 		}
 	};
 	this.msg = function(p_msgkey) {
@@ -1218,7 +1220,11 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		
 		// Legend symbol
 		canvasel = document.createElement('canvas');
-		canvasel.setAttribute('class', 'visctrl-classimg');
+
+		setClass(canvasel, "visctrl-classimg");    
+		setClass(p_d2, "tooltip-left");    
+		p_d2.setAttribute("data-tooltip", this.msg("ALTVIZCLS"))
+
 		canvasel.setAttribute('id', 'cnv'+cnvidx);
 		canvasel.setAttribute('width', p_legcell_dims.w);
 		canvasel.setAttribute('height', p_legcell_dims.h);
@@ -1296,7 +1302,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 
 		let leg_container = null;	
 		let oidx;
-		let t, r, pd, d, d2, w, x, capparent, sty, lyrtitle, gtype=null, tmpgtype;
+		let t, r, s, d, d2, w, x, capparent, sty, lyrtitle, gtype=null, tmpgtype;
 		let currlayercaption = null;
 		let lname, transients_found = 0, labelkey_found, possibly_emptysubentries_oidx;
 		let topPadLayerHeading = '6px';
@@ -1678,7 +1684,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 			leg_dims.cols = cols;
 			currlayercaption = null;
 			
-			let paddingval, minwidth;			
+			let paddingval, minwidth, lbltxt, lblid;			
 			leg_container = document.getElementById(this.widget_id);
 			if (leg_container != null && backing_obj_arr.length>0) {
 				
@@ -1735,9 +1741,13 @@ function StyleVisibility(p_mapctrlr, p_config) {
 					if (backing_obj.sty !== undefined && backing_obj.sty != null && backing_obj.sty["thematic_control"] != null) {
 						tcid = backing_obj.sty["thematic_control"]+"_opener";
 						if (backing_obj.lblstyle == "SUBENTRY") {
-							d.insertAdjacentHTML('afterbegin', (backing_obj.lbl ? backing_obj.lbl : ""));
+							//d.insertAdjacentHTML('afterbegin', (backing_obj.lbl ? backing_obj.lbl : ""));
+							lblid = null;
+							lbltxt = (backing_obj.lbl ? backing_obj.lbl : "");
 						} else {
-							d.insertAdjacentHTML('afterbegin', String.format("<span class='click' id='{0}'>{1}</span>", tcid, backing_obj.lbl));
+							//d.insertAdjacentHTML('afterbegin', String.format("<span class='click' id='{0}'>{1}</span>", tcid, backing_obj.lbl));
+							lblid = tcid;
+							lbltxt = backing_obj.lbl;
 						}
 						tcfn = backing_obj.sty["thematic_control"]+"_opener_fn";
 						if (window[tcfn] !== undefined && !opener_evt_attached) {
@@ -1747,8 +1757,19 @@ function StyleVisibility(p_mapctrlr, p_config) {
 								opener_evt_attached = true;
 						}
 					} else {
-						d.insertAdjacentHTML('afterbegin', (backing_obj.lbl ? backing_obj.lbl : ""));
+						//d.insertAdjacentHTML('afterbegin', (backing_obj.lbl ? backing_obj.lbl : ""));
+						lblid = null;
+						lbltxt = (backing_obj.lbl ? backing_obj.lbl : "");
+
 					}
+
+					s = document.createElement("div");
+					setClass(s, "visctrl-label");
+					if (lblid) {
+						s.setAttribute("id", lblid);
+					}
+					s.textContent = lbltxt; 
+					d.appendChild(s);
 
 					if (backing_obj.lblstyle == "ENTRY") {
 						
@@ -1756,9 +1777,12 @@ function StyleVisibility(p_mapctrlr, p_config) {
 						setClass(d, "unselectable");
 
 						if (backing_obj.viz && backing_obj.nofeats) {
-							setClass(d, "visctrl-nofeats");    
-							setClass(d, "tooltip-left");    
-							d.setAttribute("data-tooltip", this.msg("NOFEATS"))
+							setClass(s, "visctrl-nofeats");    
+							setClass(s, "tooltip-left");    
+							s.setAttribute("data-tooltip", this.msg("NOFEATS"))
+						} else {
+							setClass(s, "tooltip-left");    
+							s.setAttribute("data-tooltip", this.msg("ALTVIZ"))
 						}
 						
 						/*
@@ -1784,6 +1808,8 @@ function StyleVisibility(p_mapctrlr, p_config) {
 							} else {
 								setClass(d2, "inviz");
 							}
+							setClass(d2, "tooltip-left");    
+							d2.setAttribute("data-tooltip", this.msg("ALTVIZ"))
 
 							d.insertBefore(d2, d.firstChild);	
 						
