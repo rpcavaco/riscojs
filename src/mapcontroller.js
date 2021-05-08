@@ -1895,7 +1895,8 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 							try {
 								this._drawFeature(feat, p_perattribute_style, 
 									p_markerfunction, is_inscreenspace,
-									layername,in_styleflags.fillStroke, 
+									layername, 
+									in_styleflags.fillStroke, 
 									dodebug, opt_displaylayer);
 							} catch(e) {
 								inerror = true;
@@ -2154,7 +2155,6 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			opt_layername,  
 			opt_displaylayer)
 	{
-		let gtype = "NONE";
 		switch (p_feature.path_levels) 
 		{
 			case 3:
@@ -2162,7 +2162,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				if (p_dolog) {
 					console.log(".. drawFeatureInCanvas, before drawMultiplePathCollection");
 				}
-				gtype = this.getGraphicController().drawMultiplePathCollection(p_feature.points, p_dostroke, p_dofill, 
+				this.getGraphicController().drawMultiplePathCollection(p_feature.points, p_dostroke, p_dofill, 
 					is_inscreenspace, opt_displaylayer, p_dolog);
 				break;
 				
@@ -2170,7 +2170,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				if (p_dolog) {
 					console.log(".. drawFeatureInCanvas, POLY before drawMultiplePath");
 				}
-				gtype = this.getGraphicController().drawMultiplePath(p_feature.points, p_dostroke, p_dofill, 
+				this.getGraphicController().drawMultiplePath(p_feature.points, p_dostroke, p_dofill, 
 					is_inscreenspace, opt_displaylayer, p_dolog);			
 				break;
 				
@@ -2178,7 +2178,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				if (p_dolog) {
 					console.log(".. drawFeatureInCanvas, LINE/POINT before drawSimplePath");
 				}				
-				gtype = this.getGraphicController().drawSimplePath(p_feature.points, p_dostroke, p_dofill, 
+				this.getGraphicController().drawSimplePath(p_feature.points, p_dostroke, p_dofill, 
 					p_markerf, is_inscreenspace, p_dolog, p_feature.oid, p_feature.attrs, opt_displaylayer);			
 					
 				break;
@@ -2187,23 +2187,21 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				throw new Error("Internal error in drawFeatureInCanvas");
 		
 		}
-
-		return gtype;
 	};
 	
 	/* 12 - opt_noincvizstats - Don't increment viz statistics */
 	
 	this._drawFeature = function(p_featdata, p_perattribute, 
 									p_markerfunction,
-									is_inscreenspace, p_layername,
+									is_inscreenspace, p_layername, 
 									out_styleflags, opt_dodebug, 
 									opt_displaylayer, opt_noincvizstats)
 	{
-		var pac, paci, attrval, gtype, tsty;
+		var pac, paci, attrval, tsty;
 		//var hasperattribstyle = false;
 		var stylechanged = false;
 		let markerf = null;
-		
+
 		var displaylayer;
 		if (opt_displaylayer == null) {
 			displaylayer = 'base';
@@ -2321,14 +2319,14 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			
 			if (proceed) {
 			
-				gtype = this.drawFeatureInCanvas(p_featdata, out_styleflags.stroke, 
+				this.drawFeatureInCanvas(p_featdata, out_styleflags.stroke, 
 					out_styleflags.fill, markerf, 
 					is_inscreenspace, opt_dodebug, 
 					p_layername,
 					displaylayer);
 					
 				if (opt_noincvizstats!==true && this.currentstyle!=null) {
-					this.style_visibility.incrementElemStats(gtype, this.currentstyle, p_layername);
+					this.style_visibility.incrementElemStats(p_featdata.type, this.currentstyle, p_layername);
 				}
 								
 				//let currstyle = this.styleStack[displaylayer][this.styleStack[displaylayer].length-1]
@@ -3808,7 +3806,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 						if (out_return_obj.activestyle != null) {
 							/* console.log(">>"+layername);
 							console.log(out_return_obj.activestyle); */
-							this.style_visibility.incrementElemStats("POINT", out_return_obj.activestyle, layername, genlbl_out.label_count, genlbl_out.sample);
+							this.style_visibility.incrementElemStats("POINT", out_return_obj.activestyle, layername, genlbl_out.label_count,  genlbl_out.sample);
 							this.popStyle(out_return_obj.fillStroke, opt_displaylayer);
 						}
 					}

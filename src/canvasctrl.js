@@ -959,7 +959,7 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 					p_markerfunc, is_inscreenspace,  
 					b_dolog, opt_oid, opt_featattrs, opt_displaylayer) 
 	{
-		let dlayer, ctx, retgtype = "NONE";
+		let dlayer, ctx;
 		if (opt_displaylayer) {
 			dlayer = opt_displaylayer;
 		} else {
@@ -975,7 +975,7 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 			throw new Error("Internal error: odd coordinate number in drawSimplePath:"+p_points.length);
 		}
 		
-		if (p_points.length < 3) {
+		/*if (p_points.length < 3) {
 			retgtype = "POINT";
 		} else {
 			if (p_points[p_points.length-1] == p_points[0] && p_points[p_points.length-2] == p_points[1]) {
@@ -983,10 +983,10 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 			} else {
 				retgtype = "LINE";
 			}
-		}
+		} */
 
 		var prevmidpt=[0,0], midpt=[0,0], prevpt=[0,0], pt=[];
-		if (retgtype == "POINT" && p_markerfunc != null && p_markerfunc.length > 0) {
+		if (p_points.length < 3 && p_markerfunc != null && p_markerfunc.length > 0) {
 
 			if (is_inscreenspace) {
 				//this._mapcontroller.scrDiffFromLastSrvResponse.getPt(p_points[0], p_points[1], pt);
@@ -1057,8 +1057,6 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 				}
 			}
 		}
-		
-		return retgtype;
 	};
 
 
@@ -1100,6 +1098,7 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 			
 			//console.log(points);
 
+			/*
 			if (pidx == 0) {
 				if (points.length < 3) {
 					retgtype = "POINT";
@@ -1110,7 +1109,7 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 						retgtype = "LINE";
 					}
 				}
-			}
+			}*/
 			
 			for (var cpi=0; cpi<points.length; cpi+=2) 
 			{
@@ -1145,8 +1144,6 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 				console.log("filling");
 			}
 		}
-		
-		return retgtype;
 	};
 	
 	// Function drawMultiplePathCollection -- draw collection of multiple paths in canvas
@@ -1181,7 +1178,7 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 			for (var pidx=0; pidx<parts_of_points.length; pidx++)
 			{
 				points = parts_of_points[pidx];
-				if (pcidx == 0 && pidx == 0) {
+				/*if (pcidx == 0 && pidx == 0) {
 					if (points.length < 3) {
 						retgtype = "POINT";
 					} else {
@@ -1191,7 +1188,7 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 							retgtype = "LINE";
 						}
 					}
-				}
+				}*/
 
 				for (var cpi=0; cpi<points.length; cpi+=2) 
 				{
@@ -1227,8 +1224,6 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 				console.log("filling");
 			}
 		}
-		
-		return retgtype;
 	};
 	
 	this.drawCenteredRect = function(p_cx, p_cy, p_width, p_height, 

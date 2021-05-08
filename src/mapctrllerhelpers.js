@@ -1151,8 +1151,8 @@ function StyleVisibility(p_mapctrlr, p_config) {
 				let ret = null;
 				let va = p_this.toc_entries[p_idx][a];
 				let vb = p_this.toc_entries[p_idx][b];
-				if (va == 0 || va == null) { va = NaN };
-				if (vb == 0 || vb == null) { vb = NaN };
+				if (va == 0 || va == null || va === true || va === false) { va = NaN };
+				if (vb == 0 || vb == null || vb === true || vb === false) { vb = NaN };
 				if (!isNaN(va) && !isNaN(vb)) {
 					ret = va > vb ? a : b;
 				} else if (isNaN(va) && isNaN(vb)) {
@@ -1166,7 +1166,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 				return ret;
 			});
 		})(this);
-		
+
 		if (ret !== null) {
 			switch(ret) {
 				case 'pt':
@@ -1855,7 +1855,6 @@ function StyleVisibility(p_mapctrlr, p_config) {
 	//this.layer_to_tocentries = {}; // per layername dict
 	//this.toc_entries = {}; // per style index dict
 
-		
 		let idx, inc;	
 		if (opt_increment) {
 			inc = opt_increment;
@@ -1895,9 +1894,10 @@ function StyleVisibility(p_mapctrlr, p_config) {
 				if (opt_lblsample) {
 					this.toc_entries[idx].lblsample = opt_lblsample;
 				}
-			} else if (p_gtype.toUpperCase() == "LINE") {
+			} else if (p_gtype.toUpperCase() == "MLINE" || p_gtype.toUpperCase() == "LINE") {
 				this.toc_entries[idx].lin =  this.toc_entries[idx].lin + inc;
-			} else if (p_gtype.toUpperCase() == "POLY") {
+				console.log("LINE:", p_layername);
+			} else if (p_gtype.toUpperCase() == "MPOLY" || p_gtype.toUpperCase() == "POLY") {
 				this.toc_entries[idx].pol =  this.toc_entries[idx].pol + inc;
 			} else {
 				this.toc_entries[idx].undef =  this.toc_entries[idx].undef + inc;
