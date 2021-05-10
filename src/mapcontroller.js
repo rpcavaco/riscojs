@@ -3806,7 +3806,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 						if (out_return_obj.activestyle != null) {
 							/* console.log(">>"+layername);
 							console.log(out_return_obj.activestyle); */
-							this.style_visibility.incrementElemStats("POINT", out_return_obj.activestyle, layername, genlbl_out.label_count,  genlbl_out.sample);
+							//this.style_visibility.incrementElemStats("POINT", out_return_obj.activestyle, layername, genlbl_out.label_count,  genlbl_out.sample);
 							this.popStyle(out_return_obj.fillStroke, opt_displaylayer);
 						}
 					}

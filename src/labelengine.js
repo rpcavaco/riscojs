@@ -310,7 +310,7 @@ function MapLabelEngine(p_mapcontroller) {
 			}
 			if (local_lconfig[lname].label !== undefined) {
 				this.lnames.push(lname);
-				this.lconfig[lname] = local_lconfig[lname].label;
+				this.lconfig[lname] = local_lconfig[lname];
 			}
 		}
 		
@@ -327,13 +327,16 @@ function MapLabelEngine(p_mapcontroller) {
 				opt_displaylayer, opt_style)
 	{
 		'use strict';
-		var ret = true;
-		var p_scale_val, tmpstyle, selstyle=null,  dep_rendering_scaleval = null;
-		var this_has_bgdependent = false;
+		let ret = true;
+		let p_scale_val, tmpstyle, selstyle=null,  dep_rendering_scaleval = null;
+		let this_has_bgdependent = false;
 		
 		if (this.lconfig[layername] === undefined || this.lconfig[layername] == null) {
 			throw new Error("labelengine activateLayerStyle -- layer not configured:" + layername);
 		}
+
+		let lconfig = this.lconfig[layername];
+		let labelconfig = this.lconfig[layername].label;
 
 		out_return_obj.fillStroke = {
 				stroke: false,
@@ -347,21 +350,21 @@ function MapLabelEngine(p_mapcontroller) {
 		{
 			selstyle = clone(opt_style);
 		} else { 
-			if (this.lconfig[layername].defaultdraw !== undefined) {
-				ret = this.lconfig[layername].defaultdraw;
+			if (lconfig.defaultdraw !== undefined) {
+				ret = lconfig.defaultdraw;
 			}
 
 			if (!ret) {
 				return ret;
 			}
 			
-			if (this.lconfig[layername].style !== undefined) {
+			if (labelconfig.style !== undefined) {
 				
-				selstyle = clone(this.lconfig[layername].style);
+				selstyle = clone(labelconfig.style);
 
-			} else if (this.lconfig[layername]["condstyle"] !== undefined && this.lconfig[layername]["condstyle"] != null) {
-				selstyle = clone(this.lconfig[layername]["condstyle"]["default"]);
-				out_return_obj.perattribute = clone(this.lconfig[layername]["condstyle"]["perattribute"]);
+			} else if (labelconfig["condstyle"] !== undefined && labelconfig["condstyle"] != null) {
+				selstyle = clone(labelconfig["condstyle"]["default"]);
+				out_return_obj.perattribute = clone(labelconfig["condstyle"]["perattribute"]);
 			}			
 		}
 		
@@ -451,30 +454,28 @@ function MapLabelEngine(p_mapcontroller) {
 		
 	//tendo em conta os limites de escala
 	this.layerHasLabels = function(p_lname) {
-		
-		var scl, ret = false, top = MapCtrlConst.MAXSCALE_VALUE, bot = 0;
+
+		let scl, ret = false, top = MapCtrlConst.MAXSCALE_VALUE, bot = 0;
+		let lblconfig = this.lconfig[p_lname].label;
 		if (this.lnames.indexOf(p_lname) >= 0) 
 		{
-			if (this.lconfig[p_lname]["label"] !== undefined && this.lconfig[p_lname]["label"]["style"] !== undefined) {
+			if (lblconfig !== undefined && lblconfig !== undefined && lblconfig["style"] !== undefined) {
 
-				if (this.lconfig[p_lname].label.style.scalelimits !== undefined && 
-						this.lconfig[p_lname].label.style.scalelimits.top != undefined) {
-					top = this.lconfig[p_lname].label.style.scalelimits.top;
+				if (lblconfig.style.scalelimits !== undefined && 
+						lblconfig.style.scalelimits.top != undefined) {
+					top = lblconfig.style.scalelimits.top;
 				}
-				if (this.lconfig[p_lname].label.style.scalelimits !== undefined && 
-						this.lconfig[p_lname].label.style.scalelimits.bottom != undefined) {
-					bot = this.lconfig[p_lname].label.style.scalelimits.bottom;
+				if (lblconfig.style.scalelimits !== undefined && 
+						lblconfig.style.scalelimits.bottom != undefined) {
+					bot = lblconfig.style.scalelimits.bottom;
 				}
 				
 				scl = this.mapcontroller.getScale();
 				if (scl>=bot && scl<=top) {
 					ret = true;
 				}
-
 			}
-			
 		}
-		
 		return ret;
 	};
 	
@@ -482,31 +483,32 @@ function MapLabelEngine(p_mapcontroller) {
 
 		var top = MapCtrlConst.MAXSCALE_VALUE, bot = 0;
 		out_retlist.length = 0;
+		let lblconfig = this.lconfig[p_lname];
 
-		if (this.lconfig[p_lname] !== undefined && this.lconfig[p_lname] != null) 
+		if (lblconfig !== undefined && lblconfig != null) 
 		{
 			/*
 			console.log("... Labels for:"+p_lname);
-			console.log(JSON.stringify(this.lconfig[p_lname]));
-			if (this.lconfig[p_lname].style !== undefined && 
-					this.lconfig[p_lname].style.scalelimits !== undefined) {
-				console.log(JSON.stringify(this.lconfig[p_lname].style.scalelimits));
-				console.log("  top:"+this.lconfig[p_lname].style.scalelimits.top);
+			console.log(JSON.stringify(lblconfig));
+			if (lblconfig.style !== undefined && 
+					lblconfig.style.scalelimits !== undefined) {
+				console.log(JSON.stringify(lblconfig.style.scalelimits));
+				console.log("  top:"+lblconfig.style.scalelimits.top);
 			} else {
 				console.log(" no lbl style for "+p_lname);
 			}
 			console.log("...................");
 			*/
 			
-			if (this.lconfig[p_lname].style !== undefined && 
-					this.lconfig[p_lname].style.scalelimits !== undefined && 
-					this.lconfig[p_lname].style.scalelimits.top != undefined) {
-				top = this.lconfig[p_lname].style.scalelimits.top;
+			if (lblconfig.style !== undefined && 
+					lblconfig.style.scalelimits !== undefined && 
+					lblconfig.style.scalelimits.top != undefined) {
+				top = lblconfig.style.scalelimits.top;
 			}
-			if (this.lconfig[p_lname].style !== undefined && 
-					this.lconfig[p_lname].style.scalelimits !== undefined && 
-					this.lconfig[p_lname].style.scalelimits.bottom != undefined) {
-				bot = this.lconfig[p_lname].style.scalelimits.bottom;
+			if (lblconfig.style !== undefined && 
+					lblconfig.style.scalelimits !== undefined && 
+					lblconfig.style.scalelimits.bottom != undefined) {
+				bot = lblconfig.style.scalelimits.bottom;
 			}
 			
 			out_retlist.push(bot);
@@ -515,7 +517,7 @@ function MapLabelEngine(p_mapcontroller) {
 	};
 	
 	this.getLayerLabelAttrib = function(p_lname) {
-		return this.lconfig[p_lname].attrib;
+		return this.lconfig[p_lname].label.attrib;
 	};
 	
 	this.addLabel = function(layername, p_feature, p_screencoords) 
@@ -871,7 +873,9 @@ function MapLabelEngine(p_mapcontroller) {
 			// a aalterar rotated text -- p_fillstroke 
 			grCtrller.rotatedText(wrk_list[widx][0], wrk_list[widx][1], wrk_list[widx][2], 
 					p_fillstroke, opt_displaylayer, 
-					wrk_list[widx][3], wrk_list[widx][4], widx==0, widx==wrk_list.length-1);
+					wrk_list[widx][3], 
+					wrk_list[widx][4], 
+					widx==0, widx==wrk_list.length-1);
 			widx++;
 		}
 	};

@@ -106,7 +106,7 @@ function ctxGenericApplyStyle(p_canvasctx, p_styleobj, p_patterns, out_styleflag
 	
 	const foundattrs = [];
 	const modifiers = {
-		fillalpha: "ff"
+		fillalpha: ""
 	};
 	
 	// collect modifier params
@@ -136,6 +136,7 @@ function ctxGenericApplyStyle(p_canvasctx, p_styleobj, p_patterns, out_styleflag
 			foundattrs.push(k_attr);
 		}
 		switch (k_attr) {
+			case "stroke":
 			case "strokecolor":
 				p_canvasctx.strokeStyle = p_styleobj[k_attr];
 				out_styleflags.stroke = true;
@@ -151,14 +152,12 @@ function ctxGenericApplyStyle(p_canvasctx, p_styleobj, p_patterns, out_styleflag
 				} else {
 					filltxt = p_styleobj[k_attr];
 				}
-				
 				tmptxt = filltxt + modifiers.fillalpha;				
-				if (filltxt.length < 8 && tmptxt.length <= 9) {				
+				if (modifiers.fillalpha.length > 0) {				
 					p_canvasctx.fillStyle = tmptxt;
 				} else {
 					p_canvasctx.fillStyle = filltxt;
 				}
-			
 				out_styleflags.fill = true;
 				break;
 			case "linewidth":
@@ -870,6 +869,7 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 		ctx.translate(p_pt[0], p_pt[1]);
 		ctx.rotate(p_angle);
 
+		let anchpt = [];
 		if (this.getLabelBackground() !== undefined) 
 		{
 			ctx.save();
@@ -882,16 +882,22 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 				ctx.fillRect(-opt_p_chhwid, -(opt_p_chheight/2.0), opt_p_chhwid*2, opt_p_chheight);
 			}
 			ctx.restore();
+			anchpt = [-opt_p_chhwid,0];
+		} else {
+			anchpt = [0,0];
 		}
 
-		if (p_fillstroke.fill) {
-			ctx.fillText(p_txt, 0, 0);
-		}
-		if (p_fillstroke.stroke) {
-			ctx.strokeText(p_txt, 0,0);
-		}
-		if (!p_fillstroke.fill && !p_fillstroke.stroke) {
-			throw new Error("rotatedText: no fill, no stroke");
+
+		if (p_txt != " ") {
+			if (p_fillstroke.fill) {
+				ctx.fillText(p_txt, anchpt[0], anchpt[1]);
+			}
+			if (p_fillstroke.stroke) {
+				ctx.strokeText(p_txt, anchpt[0], anchpt[1]);
+			}
+			if (!p_fillstroke.fill && !p_fillstroke.stroke) {
+				throw new Error("rotatedText: no fill, no stroke");
+			}
 		}
 		ctx.restore();
 	};	
