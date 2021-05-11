@@ -8,7 +8,7 @@ var geom = {
 	deg2Rad: function(p_val) {
 		return p_val * Math.PI / 180.0;
 	},
-		
+	
 	genIntegerEnvelope: function(p_pointslist, opt_integer_radius, out_env) {
 		
 		out_env.length = 4;

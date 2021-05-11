@@ -513,10 +513,10 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 			this.imgmarkermgr.clearInstances();
 		}
 	};
-	this.clearDisplay = function(opt_background)
-	{
+
+	this.clearDisplay = function(opt_background) {
 		var displayer;
-		
+
 		this.clearImageMarkers();
 		for (var li=0; li<this._ctxorder.length; li++) 
     	{
@@ -529,8 +529,8 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
     	}
 	};
 
-	this.clearDisplayLayer = function(p_layername, opt_background)
-	{
+	this.clearDisplayLayer = function(p_layername, opt_background) {
+
 		this._ctxdict[p_layername].clearRect(0, 0, this.canvasDims[0], this.canvasDims[1]);
 		
 		/*console.log("     clearing "+p_layername);
@@ -865,13 +865,21 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 
 		ctx = this._ctxdict[dlayer];
 
+		if (isNaN(p_pt[0])) {
+			throw new Error("CanvasController.rotatedText - X coord is NaN");
+		}
+
+		if (isNaN(p_pt[1])) {
+			throw new Error("CanvasController.rotatedText - Y coord is NaN");
+		}
+
+
 		ctx.save();
 		ctx.translate(p_pt[0], p_pt[1]);
 		ctx.rotate(p_angle);
 
 		let anchpt = [];
-		if (this.getLabelBackground() !== undefined) 
-		{
+		if (this.getLabelBackground() !== undefined && opt_p_chheight != null && opt_p_chhwid != null) {
 			ctx.save();
 			ctx.fillStyle = this.getLabelBackground();
 			if (opt_p_isfirst) {
@@ -886,7 +894,6 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 		} else {
 			anchpt = [0,0];
 		}
-
 
 		if (p_txt != " ") {
 			if (p_fillstroke.fill) {
