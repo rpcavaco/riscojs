@@ -86,6 +86,7 @@ function _Basetool(p_mapctrl) {
 			lname = lnames[li];
 			if (this.actions_per_evttype_per_layer[p_evtname][lname] !== undefined) {
 				funcname = this.actions_per_evttype_per_layer[p_evtname][lname];
+				
 				if (this.the_map.checkLayerVisibility(lname)) {
 					if (out_obj.lnames_per_func[funcname] === undefined) {
 						out_obj.lnames_per_func[funcname] = [];
@@ -1079,8 +1080,6 @@ function MapControlsMgr(p_the_map) {
 		
 		finishEvent(e);
 		getEvtCoords(e, target, coords);
-
-		var tname, pn, sw, y, fname, val, strwid;
 
 		var terrain_pt = [];
 

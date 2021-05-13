@@ -1916,9 +1916,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 
 				ci++;
 			}
-		}
-		else
-		{
+		} else {
 			for (var oidkey in content)
 			{
 				if (!content.hasOwnProperty(oidkey)) {
@@ -2020,10 +2018,9 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		this.getGraphicController().clearDisplayLayer(p_displayername);
 	};
 
-	this.clear = function(p_mode)
+	this.clear = function(p_mode, b_clear_spidx)
 	{
-		
-		if (this.spatialindexer && p_mode != MapCtrlConst.CLEARMODE_RASTER) {
+		if (this.spatialindexer && b_clear_spidx) {
 			this.spatialindexer.clear();
 		}
 
@@ -2085,7 +2082,6 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			}
 			
 			this.drawImageInCanvas(this.images[p_rastername][rasterk], filterfuncname, filterfuncdata);
-			console.log("drawing", rasterk);
 			this.images[p_rastername][rasterk].drawn = true;
 			if (this.drawnrasters.indexOf(p_rastername) < 0) {
 				this.drawnrasters.push(p_rastername);
@@ -2319,6 +2315,10 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			}
 			
 			if (proceed) {
+ 
+				if (p_featdata._styidx === undefined) {
+					p_featdata._styidx = this.currentstyle["_index"];
+				}
 			
 				this.drawFeatureInCanvas(p_featdata, out_styleflags.stroke, 
 					out_styleflags.fill, markerf, 
@@ -2844,8 +2844,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			return;
 		}
 		
-		if (content_isarray)
-		{
+		if (content_isarray) {
 			ci = 0;
 			while (ldata[ci] !== undefined && ldata[ci] != null && ctrlcnt > 0)
 			{
@@ -2860,9 +2859,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 									dodebug, opt_displaylayer);
 				ci++;
 			}
-		}
-		else
-		{
+		} else {
 			for (var oidkey in ldata)
 			{
 				if (this._cancelCurrentChange) {
@@ -2874,8 +2871,11 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				}
 				if (ldata[oidkey] == null) {
 					throw new Error("drawLyr, NULL feature data, key:"+oidkey);
-					return;
 				}
+
+
+				// console.log("2876 layername:", layername, "styidx:", ldata[oidkey]._styidx);
+
 
 				this._drawFeature(ldata[oidkey], out_return.perattribute, 
 						out_return.markerfunction, is_inscreenspace, layername, 
@@ -3067,9 +3067,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 					})(this),
 				null, null, true));
 			} // for
-		}
-		else
-		{
+		} else {
 			lname = this.rcvctrler.getCurrLayerName();
 			if (lname != null)
 			{
@@ -3641,7 +3639,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		
 		this.callSequence.addMsg("_executeRefreshDraw", _inv, "label engine inited");
 		
-		this.clear(MapCtrlConst.CLEARMODE_ALL);
+		this.clear(MapCtrlConst.CLEARMODE_ALL, true);
 		this.clearFeatureData(null);
 		
 		var refresh_vectors = ((this.refreshcapability & MapCtrlConst.REFRESH_VECTORS) == MapCtrlConst.REFRESH_VECTORS);
@@ -3693,7 +3691,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		var i=0, rasternames = [];
 		this.rcvctrler.getRasterNames(rasternames);
 		
-		this.clear(MapCtrlConst.CLEARMODE_RASTER);
+		this.clear(MapCtrlConst.CLEARMODE_RASTER, false);
 		let delay;
 		if (opt_nottimed) {
 			delay = -1;
@@ -3743,7 +3741,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		let lname;
 		let t0=0, t1=0;
 		if (do_clear) {
-			this.clear(MapCtrlConst.CLEARMODE_VECTOR);
+			this.clear(MapCtrlConst.CLEARMODE_VECTOR, false);
 		}
 		
 		let delay;
@@ -4388,7 +4386,12 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	window.addEventListener("mousemove", 
 		(function (p_mapctrlsmgr) {
 			return function(e) {
-				p_mapctrlsmgr.mousemove(e);
+				const trgt = getTarget(e);
+				if (trgt.tagName.toLowerCase() == "canvas") {
+					if (trgt.id == "_dltransient" || trgt.id == "_dltemporary") {
+						p_mapctrlsmgr.mousemove(e);
+					}
+				}
 			}
 		})(this.mapctrlsmgr)
 	);
