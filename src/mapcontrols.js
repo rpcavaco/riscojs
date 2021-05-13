@@ -861,6 +861,7 @@ function MapControlsMgr(p_the_map) {
 			this.mousecoordswidgetids.push(p_widgetid);
 		}
 	};
+
 		// criar controles visiveis
 	this.createVisibleControls = function() 
 	{

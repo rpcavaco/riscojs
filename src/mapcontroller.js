@@ -998,7 +998,6 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				this.mapctrlsmgr.readConfig(p_initconfig["controlssetup"]);
 			}
 		}
-		
 		if (p_initconfig.scalewidgets !== undefined) {
 			for (var i=0; i<p_initconfig["scalewidgets"].length; i++) {
 				this.registerScaleWidget(p_initconfig["scalewidgets"][i]);
@@ -2182,7 +2181,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 					p_markerf, is_inscreenspace, p_dolog, p_feature.oid, p_feature.attrs, opt_displaylayer);			
 					
 				break;
-				
+
 			default:
 				throw new Error("Internal error in drawFeatureInCanvas");
 		

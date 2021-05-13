@@ -978,7 +978,7 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 		} else {
 			dlayer = this.activeDisplayLayer;
 		}
-		
+
 		ctx = this._ctxdict[dlayer];
 		
 		if (p_points.length < 1) {
@@ -988,16 +988,6 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 			throw new Error("Internal error: odd coordinate number in drawSimplePath:"+p_points.length);
 		}
 		
-		/*if (p_points.length < 3) {
-			retgtype = "POINT";
-		} else {
-			if (p_points[p_points.length-1] == p_points[0] && p_points[p_points.length-2] == p_points[1]) {
-				retgtype = "POLY";
-			} else {
-				retgtype = "LINE";
-			}
-		} */
-
 		var prevmidpt=[0,0], midpt=[0,0], prevpt=[0,0], pt=[];
 		if (p_points.length < 3 && p_markerfunc != null && p_markerfunc.length > 0) {
 
@@ -1007,7 +997,7 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 			} else {
 				this._mapcontroller.getScreenPtFromTerrain(p_points[0], p_points[1], pt);
 			}
-			window[p_markerfunc](ctx, pt, this._mapcontroller.getScale(), opt_oid, opt_featattrs);
+			window[p_markerfunc](ctx, pt, this._mapcontroller.getScale(), opt_oid, opt_featattrs, dlayer);
 			
 		} else {
 		

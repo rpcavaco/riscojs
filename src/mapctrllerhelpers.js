@@ -874,7 +874,7 @@ function layerActivateTOC(p_domelem, p_ctx, p_backing_obj, p_patterns, p_bxwith,
 		const tocscale = styleobj.tocscale;
 		
 		if (window[markerf] !== undefined) {		
-			window[markerf](p_ctx, [3+parseInt(innerw/2), 3+parseInt(innerh/2)], tocscale, -1, tocattrs);
+			window[markerf](p_ctx, [3+parseInt(innerw/2), 3+parseInt(innerh/2)], tocscale, -1, tocattrs, null);
 		}
 
 	}
