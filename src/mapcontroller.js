@@ -2085,6 +2085,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			}
 			
 			this.drawImageInCanvas(this.images[p_rastername][rasterk], filterfuncname, filterfuncdata);
+			console.log("drawing", rasterk);
 			this.images[p_rastername][rasterk].drawn = true;
 			if (this.drawnrasters.indexOf(p_rastername) < 0) {
 				this.drawnrasters.push(p_rastername);
@@ -2114,6 +2115,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		{
 			this.pendingimages[p_rastername].splice(idx, 1);	
 			if (this.images[p_rastername][rasterk] !== undefined && this.images[p_rastername][rasterk] != null) {
+				console.log("deleting", rasterk);
 				delete this.images[p_rastername][rasterk];
 			}	
 							
@@ -2129,7 +2131,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		}
 		
 		if (doLocalDraw) {
-			this.localDrawRasters(false);
+			this.localDrawRasters(true);
 			if (pp_objforlatevectordrawing.refresh_vectors)	{						
 				this._executeVectorRefreshDraw(MapCtrlConst.DEFAULT_USE_SCREEN_COORD_SPACE, pp_objforlatevectordrawing.filteringdata);
 			}
@@ -2716,7 +2718,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		return p_feat;
 	};
 
-	this._drawRasterLyr = function(p_rastername, opt_maxallowed_duration, opt_force, opt_displaylayer)
+	this._drawRasterLyr = function(p_rastername, opt_maxallowed_duration, opt_displaylayer)
 	{
 		'use strict';
 
@@ -3686,7 +3688,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 
  */
 
-	this.localDrawRasters = function(opt_force, opt_nottimed)
+	this.localDrawRasters = function(opt_nottimed)
 	{
 		var i=0, rasternames = [];
 		this.rcvctrler.getRasterNames(rasternames);
@@ -3721,7 +3723,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				}
 				if (this.checkLayerVisibility(rasternames[i]))
 				{
-					if (this._drawRasterLyr(rasternames[i], delay, opt_force)) {
+					if (this._drawRasterLyr(rasternames[i], delay)) {
 						if (this.drawnrasters.indexOf(rasternames[i]) < 0) {
 							this.drawnrasters.push(rasternames[i]);
 						}
@@ -3821,7 +3823,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		this._cancelCurrentChange = false;
 		
 		try {
-			this.localDrawRasters(false, opt_nottimed);
+			this.localDrawRasters(opt_nottimed);
 			// _cancelCurrentChange can be set during draw raster task
 			if (!this._cancelCurrentChange) {
 				this.localDrawFeatures(true, opt_nottimed);
