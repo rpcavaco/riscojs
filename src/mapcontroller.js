@@ -3876,7 +3876,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				wdgname = this.mapctrlsmgr.widgetnames_hide_during_refresh[i];
 				wdg = document.getElementById(wdgname);
 				if (wdg) {
-					wdg.style.visibility = "hidden";
+					wdg.style.opacity = 0.5;
 				}
 			}
 		}
@@ -3910,6 +3910,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 						wdg.style.visibility = "hidden";
 					} else {
 						wdg.style.visibility = "visible";
+						wdg.style.opacity = 1.0;
 					}
 				}
 			}
