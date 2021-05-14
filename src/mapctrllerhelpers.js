@@ -1000,7 +1000,28 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		}
 		return ret;		
 	};
-	
+
+	this.getLyrTOCSVisibilityStr = function() {	
+		let ret = "", state;		
+
+		for (let tmp_lname in this.layer_to_tocentries) {
+			if (this.layer_to_tocentries.hasOwnProperty(tmp_lname)) {
+				if (this.isLyrTOCVisibile(tmp_lname)) {
+					state = "true";
+				} else {
+					state = "false";
+				}
+				if (ret.length > 0) {
+					ret = ret + "#" + tmp_lname + "=" + state;
+				} else {
+					ret = tmp_lname + "=" + state;
+				}
+			}
+		}
+
+		return ret;		
+	};
+
 	this.isLyrTOCVisibilityTrueOrUndef = function(p_lname) {
 		
 		let ret = true;
@@ -1089,6 +1110,11 @@ function StyleVisibility(p_mapctrlr, p_config) {
 				this.mapcontroller.onChangeFinish("toggleRedrawTOC");
 			}
 		}
+
+		const vizlyrs_str = this.getLyrTOCSVisibilityStr();
+						
+		// marcar centro, escala e layers visiveis em cookies
+		setCookie("risco_vizlrs", vizlyrs_str + "; SameSite=Strict; max-age=259200");			
 		
 		return dorefresh;
 	};

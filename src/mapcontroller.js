@@ -426,13 +426,15 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		}
 		this.muted_vectors = p_do_mute;
 	};
-	this.setBackgroundRasterLyrName = function(p_name) {
+
+	// only for internal use, may interfere on layer config reading
+	this._setBackgroundRasterLyrName = function(p_name) {
 		this.rcvctrler.setRasterNames([p_name]);
 	};
-	this.getBackgroundRasterLyrNames = function(p_outlist) {
+	this._getBackgroundRasterLyrNames = function(p_outlist) {
 		this.rcvctrler.getRasterNames(p_outlist);
 	};
-	this.clearBackgroundRasterLyrNames = function() {
+	this._clearBackgroundRasterLyrNames = function() {
 		this.rcvctrler.clearRasterNames();
 	};
 	
@@ -607,6 +609,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		this.transformsQueue.checkToStore();
 
 		this.prepareRefreshDraw(opt_filter);
+		this.applyRegisteredsOnPanZoom();
 	};
 	
 /** @this MapController 
@@ -906,7 +909,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		
 	this.readConfig = function(p_initconfig) {
 		
-		var scalev, tobj, tobj1, baseurl, lblscllims=[];
+		var scalev, tobj, cookievizlyrs, splits, splits2, lblscllims=[];
 
 		if (p_initconfig.servertype === undefined || p_initconfig.servertype == "active") {
 			this.activeserver = true;
@@ -933,7 +936,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			this.maxscaleview = new maxScaleView(p_initconfig.maxscaleview.scale, p_initconfig.maxscaleview.terrain_center);
 		}
 
-		let tc = getCookie("mapscale");
+		let tc = getCookie("risco_mapscale");
 		if (tc.length < 1) {
 			if (p_initconfig.terrain_center !== undefined)
 			{			
@@ -951,7 +954,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			this.setScale(scalev);
 		}
 				
-		tc = getCookie("terrain_center");
+		tc = getCookie("risco_terrain_center");
 		if (tc.length < 1) {
 			if (p_initconfig.terrain_center !== undefined)
 			{			
@@ -963,7 +966,19 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		} else {
 			tobj = tc.split("_");
 		}
-		
+
+		cookievizlyrs = {};
+		tc = getCookie("risco_vizlrs");
+		if (tc.length > 0) {
+			splits = tc.split("#");
+			for (let spli=0; spli<splits.length; spli++) {
+				splits2 = splits[spli].split("=");
+				if (splits2.length == 2 && splits2[0].length > 0) {
+					cookievizlyrs[splits2[0]] = (splits2[1] == "true");
+				}
+			}
+		}
+
 		if (tobj) {
 			if (isNaN(parseFloat(tobj[0]))) {
 				throw new Error(this.msg("ERRCEN0")+ ":" + tobj[0]);
@@ -1083,6 +1098,13 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				}
 			}
 		};
+
+		if  (p_initconfig["baseraster"] !== undefined && p_initconfig["baseraster"].length > 0) {
+			this._setBackgroundRasterLyrName(p_initconfig["baseraster"]);
+		}
+
+		let bckrdRasters = [];
+		this._getBackgroundRasterLyrNames(bckrdRasters);
 		
 		// Layer (vector) config
 		if (p_initconfig["lconfig"] !== undefined) {
@@ -1114,10 +1136,19 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 								
 				bot = 0; top = MapCtrlConst.MAXSCALE_VALUE;
 				
-				if (this.lconfig[lname].visible === undefined) {
+				// Layer TOC hold/release from cookie data				
+				if (bckrdRasters.indexOf(lname) >= 0) {
 					this.lconfig[lname].visible = true;
+				} else {
+					if (cookievizlyrs[lname] !== undefined) {
+						this.lconfig[lname].visible = cookievizlyrs[lname];
+					} else {
+						if (this.lconfig[lname].visible === undefined) {
+							this.lconfig[lname].visible = true;
+						}
+					}
 				}
-				
+
 				lc = this.lconfig[lname];
 				
 				// prepare structure for symbology usage statistics
@@ -1227,7 +1258,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				throw new Error(this.msg("MISSSMALLSRCCFG"));
 			}
 		}
-		
+
 		this.style_visibility = new StyleVisibility(this, p_initconfig);
 		if (this.mapctrlsmgr) {
 			this.style_visibility.setWidgetId(this.mapctrlsmgr.legendcfg.visibility_widget_name);
@@ -3999,14 +4030,13 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	this.applyRegisteredsOnPanZoom = function()  {
 		let muidx = 0;
 		if (this.onPanZoom[muidx] !== undefined && this.onPanZoom[muidx] != null) {
-			this.onPanZoom[muidx]();
+			this.onPanZoom[muidx](this);
 			muidx++;
 		}
 	}
 	
 // TODO - parâmetros de sobreamento não podem ser aplicados ao ctx, tem de despoletar o desenho de
 // um segundo texto desviado 
-	// APPLY STYLE NO CANVAS, ISTO CHAMA ESSA NOVA FUNC
 
 	this.applyStyle = function(p_styleobj, out_styleflags, opt_displaylayer)
 	{
