@@ -1062,6 +1062,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 	// toggle layers or styles: if only opt_lname is given, toggles entire layer,
 	//  if opt_style_index is given it toggles just that style.
 	// If both are given, that will be intepreted as "just that style"
+	// This command REFRESHES the map, opposite of holdLayerVisibility and releaseLayerVisibility which don't refresh.
 	this.toggleVisibility = function(opt_lname, opt_style_index) {
 		
 		if (typeof showLoaderImg != "undefined") { showLoaderImg(); }
@@ -1119,6 +1120,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		return dorefresh;
 	};
 	
+	// This command DOESN'T REFRESH the map
 	this._holdReleaseLayerVisibility = function(p_tovisible, p_lname) {
 		
 		if (p_tovisible == null || typeof p_tovisible != "boolean") {
@@ -1156,9 +1158,11 @@ function StyleVisibility(p_mapctrlr, p_config) {
 		return ret;
 	}
 	
+	// This command DOESN'T REFRESH the map
 	this.holdLayerVisibility = function(p_lname) {
 		return this._holdReleaseLayerVisibility(false, p_lname);
 	};
+	// This command DOESN'T REFRESH the map
 	this.releaseLayerVisibility = function(p_lname) {
 		return this._holdReleaseLayerVisibility(true, p_lname);
 	};
