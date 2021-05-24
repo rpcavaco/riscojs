@@ -603,6 +603,9 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 */
 	this.refreshFromMinMax = function(p_minx, p_miny, p_maxx, p_maxy, opt_filter) // opt_expandfactor
 	{
+		this.callSequence.init("refresh");
+		this.onChangeStart("refresh");
+
 		var env = new Envelope2D();
 		env.setMinsMaxs(p_minx, p_miny, p_maxx, p_maxy);
 		this.calcMapTransform(env);
@@ -3869,6 +3872,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		
 		//console.log("change start "+p_typestr);
 		//this.clearVisibilityData(p_typestr);
+		if (typeof showLoaderImg != "undefined") { showLoaderImg(); }
 		
 		if (this.mapctrlsmgr) {
 			let wdg, wdgname;
@@ -3964,10 +3968,6 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			for (var arfi=0; arfi<this.adic_refresh_func.length; arfi++) {
 				this.adic_refresh_func[arfi]();
 			}
-		}
-		
-		if (typeof hideLoaderImg != 'undefined') {
-			hideLoaderImg();
 		}
 		
 		this._cancelCurrentChange = false;
