@@ -3875,14 +3875,18 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		if (typeof showLoaderImg != "undefined") { showLoaderImg(); }
 		
 		if (this.mapctrlsmgr) {
-			let wdg, wdgname;
+
+			if (this.mapctrlsmgr.widget_hiding_during_refresh_mgr) {
+				this.mapctrlsmgr.widget_hiding_during_refresh_mgr.legend_blur(true);
+			}
+			/*let wdg, wdgname;
 			for (let i=0; i<this.mapctrlsmgr.widgetnames_hide_during_refresh.length; i++) {
 				wdgname = this.mapctrlsmgr.widgetnames_hide_during_refresh[i];
 				wdg = document.getElementById(wdgname);
 				if (wdg) {
 					wdg.style.opacity = 0.5;
 				}
-			}
+			}*/
 		}
 	}
 
@@ -3898,6 +3902,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		this._onDrawFinish(p_type);
 		this.pubScaleVal(scl);
 
+		/*
 		if (this.mapctrlsmgr) {
 
 			let wdg, wdgname, wdghidsmallscale, insmallscaleview = false;
@@ -3906,6 +3911,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			if (this.small_scale_limit !== undefined && scl > this.small_scale_limit) {
 				insmallscaleview = true;
 			}
+
 			for (let i=0; i<this.mapctrlsmgr.widgetnames_hide_during_refresh.length; i++) {
 				wdgname = this.mapctrlsmgr.widgetnames_hide_during_refresh[i];
 				wdg = document.getElementById(wdgname);
@@ -3919,6 +3925,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				}
 			}
 		}
+		*/
 				
 		this.updateVisibilityWidget();
 	};

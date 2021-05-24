@@ -1295,35 +1295,6 @@ function StyleVisibility(p_mapctrlr, p_config) {
 			})(this, canvasel, p_backing_obj.sty.lname, p_backing_obj.sty._index);
 		}
 
-		/*
-		(function(p_self, p_canvasel, p_styleobj, p_lname) {						
-			attEventHandler(p_canvasel, 'mouseover',
-				function(evt) {
-					var objectoids = p_self.mapcontroller.perattribute_indexing.get(p_lname, p_styleobj._index);
-					var inscreenspace = true;
-					var dlayer = 'transient';
-					if (objectoids) {
-						p_self.mapcontroller.clearTransient();
-						for (var oidx=0; oidx<objectoids.length; oidx++) {
-							// TODO - passar para init / app.js
-							p_self.mapcontroller.drawSingleFeature(p_lname, objectoids[oidx], inscreenspace, dlayer,  
-										{										
-											"strokecolor": 'cyan',
-											"linewidth": 3,
-											"shadowcolor": "#000",
-											"shadowoffsetx": 2,
-											"shadowoffsety": 2,
-											"shadowblur": 2
-										}, null, true, null,						
-										false);	
-						}
-					}
-
-				}
-			);
-		})(this, canvasel, p_backing_obj.sty.style, p_backing_obj.sty.lname);
-		*/
-
 		p_d2.appendChild(canvasel);
 			
 		return cnvidx;
@@ -1714,6 +1685,10 @@ function StyleVisibility(p_mapctrlr, p_config) {
 			let paddingval, minwidth, lbltxt, lblid;			
 			leg_container = document.getElementById(this.widget_id);
 			if (leg_container != null && backing_obj_arr.length>0) {
+
+				if (this.mapcontroller.mapctrlsmgr.widget_hiding_during_refresh_mgr) {
+					this.mapcontroller.mapctrlsmgr.widget_hiding_during_refresh_mgr.legend_blur(true);
+				}
 				
 				leg_par = leg_container.parentNode;
 				
@@ -1811,8 +1786,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 							setClass(s, "tooltip-left");    
 							s.setAttribute("data-tooltip", this.msg("ALTVIZ"))
 						}
-						
-							
+													
 						d2 = document.createElement("div");	
 						if (this.isLyrTOCVisibile(backing_obj.lname)) {
 							setClass(d2, "viz");
@@ -1875,7 +1849,11 @@ function StyleVisibility(p_mapctrlr, p_config) {
 					}					
 					currcol = currcol + backing_obj.colspan;											
 				}									
-				leg_par.style.removeProperty('visibility');
+
+				if (this.mapcontroller.mapctrlsmgr.widget_hiding_during_refresh_mgr) {
+					this.mapcontroller.mapctrlsmgr.widget_hiding_during_refresh_mgr.legend_blur(false);
+				}
+	
 			} // if (leg_container) {			
 		} // if (this.widget_id) {		
 	};

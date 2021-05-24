@@ -732,7 +732,7 @@ function MapControlsMgr(p_the_map) {
 	this.deftoolname = null;
 
 	this.legendcfg = null;
-	this.widgetnames_hide_during_refresh = [];
+	this.widget_hiding_during_refresh_mgr = null;
 	this.widgetnames_hide_small_scale = [];
 	
 	this.mouseWheelCtrler = new mouseWheelController(this);
@@ -794,8 +794,8 @@ function MapControlsMgr(p_the_map) {
 		if (p_initconfig["legendcfg"] !== undefined && p_initconfig["legendcfg"] != null) {
 			this.legendcfg = p_initconfig["legendcfg"];
 		}
-		if (p_initconfig["widgetnames_hide_during_refresh"] !== undefined && p_initconfig["widgetnames_hide_during_refresh"] != null) {
-			this.widgetnames_hide_during_refresh = p_initconfig["widgetnames_hide_during_refresh"];
+		if (p_initconfig["widget_hiding_during_refresh_mgr"] !== undefined && p_initconfig["widget_hiding_during_refresh_mgr"] != null) {
+			this.widget_hiding_during_refresh_mgr = window[p_initconfig["widget_hiding_during_refresh_mgr"]];
 		}
 		if (p_initconfig["widgetnames_hide_small_scale"] !== undefined && p_initconfig["widgetnames_hide_small_scale"] != null) {
 			this.widgetnames_hide_small_scale = p_initconfig["widgetnames_hide_small_scale"];
