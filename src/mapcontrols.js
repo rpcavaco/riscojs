@@ -890,13 +890,17 @@ function MapControlsMgr(p_the_map) {
 			contdiv.setAttribute('class', contdivstyle);
 			
 			var topdiv = document.createElement('div');
-			topdiv.setAttribute('class', 'minimalCtrlsVerticalTop');
+			topdiv.setAttribute('class', 'minimalCtrlsVerticalTop ctrlPlus');
 			contdiv.appendChild(topdiv);
-			var spanplus = document.createElement('span');
-			var spplustxt = document.createTextNode('+');
+			// var spanplus = document.createElement('span');
+			// var spplustxt = document.createTextNode('+');
+
+			var middiv = document.createElement('div');
+			middiv.setAttribute('class', 'ctrlHome');
+			contdiv.appendChild(middiv);  
 			
 			var botdiv = document.createElement('div');
-			botdiv.setAttribute('class', 'minimalCtrlsVerticalBottom');
+			botdiv.setAttribute('class', 'minimalCtrlsVerticalBottom ctrlMinus');
 			contdiv.appendChild(botdiv);
 			var spanminus = document.createElement('span');
 			var spminustxt = document.createTextNode('-');
@@ -907,22 +911,28 @@ function MapControlsMgr(p_the_map) {
 				attEventHandler(topdiv, 
 						'mouseup', 
 						function (e) {
-							p_mapctrl.changeScale(p_mapctrl.getScale() / 2.0)
+							p_mapctrl.changeScale(p_mapctrl.getScale() / 2.0);
 						}			
+				);
+				attEventHandler(middiv, 
+					'mousedown', 
+					function (e) {
+						p_mapctrl.refreshFromScaleAndCenter(p_mapctrl.init_scale, p_mapctrl.init_center[0], p_mapctrl.init_center[1]);
+					}			
 				);
 				attEventHandler(botdiv, 
 						'mousedown', 
 						function (e) {
-							p_mapctrl.changeScale(p_mapctrl.getScale() * 2.0)
+							p_mapctrl.changeScale(p_mapctrl.getScale() * 2.0);
 						}			
 				);
 			})(mapctrl);
 			
-			spanplus.appendChild(spplustxt);
-			topdiv.appendChild(spanplus);
+			//spanplus.appendChild(spplustxt);
+			// topdiv.appendChild(spanplus);
 
-			spanminus.appendChild(spminustxt);
-			botdiv.appendChild(spanminus);	
+			//spanminus.appendChild(spminustxt);
+			//botdiv.appendChild(spanminus);	
 			
 			mapDiv.appendChild(contdiv);			
 		}

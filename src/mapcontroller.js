@@ -172,6 +172,8 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	this.styleStack = {}; // by display layer
 	this.currentstyle = null;
 	this.lconfig = {};
+	this.init_scale = null;
+	this.init_center = [];
 	this.fillpatterns = {};
 	this.small_scale_source = null;
 	this.small_scale_limit = null;
@@ -624,6 +626,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	this.refreshFromScaleAndCenter = function(p_scale, p_centerx, p_centery) {
 		this.setScale(p_scale);
 		this.changeCenter(p_centerx, p_centery);
+		this.applyRegisteredsOnPanZoom();
 	};
 	
 /** @this MapController 
@@ -931,24 +934,28 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		if (p_initconfig.scale !== undefined) {
 			scalev = parseFloat(p_initconfig["scale"]);
 			this.setScale(scalev);
+			this.init_scale = scalev;
 		} else {
 			throw new Error(this.msg("NOSCL"));
 		}
-		
+
+		if (p_initconfig.terrain_center !== undefined)
+		{			
+			tobj = p_initconfig["terrain_center"];
+			this.init_center = [tobj[0], tobj[1]];	
+			
+		} else {	
+			throw new Error(this.msg("NOCEN"));			
+		}
+	
 		if (p_initconfig.maxscaleview) {
 			this.maxscaleview = new maxScaleView(p_initconfig.maxscaleview.scale, p_initconfig.maxscaleview.terrain_center);
 		}
 
 		let tc = getCookie("risco_mapscale");
 		if (tc.length < 1) {
-			if (p_initconfig.terrain_center !== undefined)
-			{			
-				tc = p_initconfig["scale"];
-				scalev = parseFloat(tc);
-				
-			} else {	
-				throw new Error(this.msg("NOSCL"));			
-			}
+			tc = p_initconfig["scale"];
+			scalev = parseFloat(tc);
 		} else {
 			if (isNaN(parseFloat(tc))) {
 				throw new Error(this.msg("INVSCL")+ ":" + tc);
@@ -959,13 +966,8 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				
 		tc = getCookie("risco_terrain_center");
 		if (tc.length < 1) {
-			if (p_initconfig.terrain_center !== undefined)
-			{			
-				tobj = p_initconfig["terrain_center"];
-				
-			} else {	
-				throw new Error(this.msg("NOCEN"));			
-			}
+			tobj = p_initconfig["terrain_center"];
+			this.init_center = [tobj[0], tobj[1]];	
 		} else {
 			tobj = tc.split("_");
 		}
