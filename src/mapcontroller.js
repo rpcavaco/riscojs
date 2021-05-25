@@ -3877,7 +3877,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		if (this.mapctrlsmgr) {
 
 			if (this.mapctrlsmgr.widget_hiding_during_refresh_mgr) {
-				this.mapctrlsmgr.widget_hiding_during_refresh_mgr.legend_blur(true);
+				this.mapctrlsmgr.widget_hiding_during_refresh_mgr.blur(true);
 			}
 			/*let wdg, wdgname;
 			for (let i=0; i<this.mapctrlsmgr.widgetnames_hide_during_refresh.length; i++) {

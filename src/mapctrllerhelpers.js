@@ -1687,7 +1687,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 			if (leg_container != null && backing_obj_arr.length>0) {
 
 				if (this.mapcontroller.mapctrlsmgr.widget_hiding_during_refresh_mgr) {
-					this.mapcontroller.mapctrlsmgr.widget_hiding_during_refresh_mgr.legend_blur(true);
+					this.mapcontroller.mapctrlsmgr.widget_hiding_during_refresh_mgr.blur(true);
 				}
 				
 				leg_par = leg_container.parentNode;
@@ -1851,7 +1851,7 @@ function StyleVisibility(p_mapctrlr, p_config) {
 				}									
 
 				if (this.mapcontroller.mapctrlsmgr.widget_hiding_during_refresh_mgr) {
-					this.mapcontroller.mapctrlsmgr.widget_hiding_during_refresh_mgr.legend_blur(false);
+					this.mapcontroller.mapctrlsmgr.widget_hiding_during_refresh_mgr.blur(false);
 				}
 	
 			} // if (leg_container) {			
