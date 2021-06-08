@@ -681,6 +681,9 @@ function MapControlsMgr(p_the_map) {
 
 	this.i18nmsgs = {
 			"pt": {
+				"ZIN": "Zoom in",
+				"HOME": "Extensão inicial",
+				"ZOUT": "Afastar",
 				"ACTTOOL": "Ferramenta ativa:",				
 				"NONEW": "'MapControlsMgr' é classe, o seu construtor foi invocado sem 'new'",				
 				"NULLMAP": "'MapControlsMgr'sem mapa associado",
@@ -689,6 +692,9 @@ function MapControlsMgr(p_the_map) {
 						
 			},			
 			"en": {
+				"ZIN": "Zoom in",
+				"HOME": "Initial extent",
+				"ZOUT": "Zoom out",
 				"ACTTOOL": "Activate tool:",				
 				"NONEW": "'MapControlsMgr' is a class, its constructor was invoked without 'new'",				
 				"NULLMAP": "'MapControlsMgr' without map",				
@@ -891,16 +897,25 @@ function MapControlsMgr(p_the_map) {
 			
 			var topdiv = document.createElement('div');
 			topdiv.setAttribute('class', 'minimalCtrlsVerticalTop ctrlPlus');
+			setClass(topdiv, "tooltip-right");    
+			topdiv.setAttribute("data-tooltip", this.msg("ZIN"))
+
 			contdiv.appendChild(topdiv);
 			// var spanplus = document.createElement('span');
 			// var spplustxt = document.createTextNode('+');
 
 			var middiv = document.createElement('div');
 			middiv.setAttribute('class', 'ctrlHome');
+			setClass(middiv, "tooltip-right");    
+			middiv.setAttribute("data-tooltip", this.msg("HOME"))
+
 			contdiv.appendChild(middiv);  
 			
 			var botdiv = document.createElement('div');
 			botdiv.setAttribute('class', 'minimalCtrlsVerticalBottom ctrlMinus');
+			setClass(botdiv, "tooltip-right");    
+			botdiv.setAttribute("data-tooltip", this.msg("ZOUT"))
+	
 			contdiv.appendChild(botdiv);
 			var spanminus = document.createElement('span');
 			var spminustxt = document.createTextNode('-');
