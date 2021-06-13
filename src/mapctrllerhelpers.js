@@ -603,8 +603,12 @@ function RetrievalController() {
 		this._rasterlayersspecs[p_name].topnorthing = p_general_obj.topnorthing;
 		this._rasterlayersspecs[p_name].easting = p_general_obj.easting;
 		this._rasterlayersspecs[p_name].level = p_obj.level;
-		//this._rasterlayersspecs[p_name].pixsize = p_general_obj.pixsize;
 	};
+
+	this.setWMSRasterLayerSpecs = function(p_name, p_wmsspecs) {
+		this._rasterlayersspecs[p_name] = clone(p_wmsspecs);
+	};
+
 	this.getRasterLayerSpecs = function(p_name) {
 		return this._rasterlayersspecs[p_name];
 	};

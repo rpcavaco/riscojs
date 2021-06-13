@@ -1148,7 +1148,7 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 			}
 		}
 	};
-	
+
 	// Function drawMultiplePathCollection -- draw collection of multiple paths in canvas
 	// Input parameters:
 	// 	 p_parts_of_points: lists of consecutive coordinate values, unpaired

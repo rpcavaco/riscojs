@@ -912,6 +912,20 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		out_pt[0] = v2[0];
 		out_pt[1] = v2[1];
 	};
+
+	this.layerRasterSpecs = function(p_lname) {
+		let rettype = "NONE";
+		let retobj = null;
+		if (this.lconfig[p_lname]['rasterbaseurl'] !== undefined) {
+			rettype = "RISCOTILES";
+			retobj = this.lconfig[p_lname]['rasterbaseurl'];
+		} else if (this.lconfig[p_lname]['wmsbaseurl'] !== undefined) {
+			rettype = "WMS";
+			retobj = this.lconfig[p_lname];
+		}
+
+		return [rettype, retobj];
+	};
 		
 	this.readConfig = function(p_initconfig) {
 		
@@ -1124,7 +1138,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				
 				foundlnames.push(lname);
 
-				if (this.lnames.indexOf(lname) < 0 && this.lconfig[lname]['rasterbaseurl'] === undefined) {
+				if (this.lnames.indexOf(lname) < 0 && this.layerRasterSpecs(lname) == "NONE") {
 					notused_lnames.push(lname);
 				}
 				
@@ -1132,7 +1146,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				if (dc == "NOCONFIG") {
 					noconfig_lnames.push(lname);
 				} else {
-					if (dc != "OK" && this.lconfig[lname]['rasterbaseurl'] === undefined && (this.lconfig[lname]['onlydata'] === undefined || !this.lconfig[lname]['onlydata'])) {
+					if (dc != "OK" && this.layerRasterSpecs(lname) == "NONE" && (this.lconfig[lname]['onlydata'] === undefined || !this.lconfig[lname]['onlydata'])) {
 						if (dc == "NOSTYLE") {
 							nostyle_lnames.push(lname);
 						}
@@ -1328,17 +1342,6 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 
 	};
 	
-	this.getRasterURL = function(p_lname) 
-	{	
-		if (this.lconfig[p_lname] === undefined) {
-			throw new Error(this.msg("MISSLYR")+p_lname);
-		}
-		if (this.lconfig[p_lname].rasterbaseurl === undefined) {
-			throw new Error(this.msg("MISSRASTERLYR")+p_lname);
-		}
-		return this.lconfig[p_lname].rasterbaseurl;
-	}
-
 	this.getStatsURL = function(opt_filter) 
 	{
 		var ret, sep, formatstr, center=[];
@@ -3168,10 +3171,6 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			}
 		}
 	};
-
-	// Function drawMultiplePathCollection -- draw collection of multiple paths in canvas
-	// Input parameters:
-	// 	 opt_objforlatevectordrawing: object containing attributes to control vector drawing ocurring after the rasters, here retrieved, are fully drawn
 	
 	this._retrieveRastersFromServer = function(p_objforlatevectordrawing, b_vectorsexpected)
 	{
@@ -3194,8 +3193,12 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 						the_mapcontroller.clearImageData();
 					}
 					if (the_map.checkLayerVisibility(name)) {
-						var baseurl = lconfig[name].rasterbaseurl;
-						the_mapcontroller._getMapTiles(name, baseurl, rasterLayerSpecs, p_objforlatevectordrawing);		
+						const rls = the_mapcontroller.layerRasterSpecs(name);
+						if (rls[0] == "RISCOTILES") {
+							the_mapcontroller._getMapTiles(name, rls[1], rasterLayerSpecs, p_objforlatevectordrawing);	
+						} else if (rls[0] == "WMS") {
+							the_mapcontroller._getWMSMapTiles(name, rasterLayerSpecs, p_objforlatevectordrawing) 
+						}	
 					}	
 				},
 				this,
@@ -3272,7 +3275,6 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				} else {
 
 					this.callSequence.addMsg("_retrieveVectorsFromServer", _inv, "this.activeserver == FALSE, breaking");
-
 					break;
 				}
 			}
@@ -3443,20 +3445,21 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		// se há rasters pedir specs	
 		if ((this.refreshmode & MapCtrlConst.REFRESH_RASTERS) == MapCtrlConst.REFRESH_RASTERS) 
 		{
-			var k=0, lvl, lvldata, rname, rasternames = [];
-			this.rcvctrler.getRasterNames(rasternames);
+			let k=0, lvl, lvldata, rname, rasternames = [];
+			let sclval, rls, rurl;
 
+			this.rcvctrler.getRasterNames(rasternames);
 			this.callSequence.addMsg("prepareRefreshDraw", _inv, "fetching raster specs from server");
 			
-			while (rasternames[k] !== undefined && rasternames[k] != null) 
-			{
+			while (rasternames[k] !== undefined && rasternames[k] != null) {
+
 				rname = rasternames[k];
 				if (this.rcvctrler.existRasterLayerSpecs(rname)) {
 					k++;
 					continue;
 				}
 
-				var sclval = this.getScale();
+				sclval = this.getScale();
 				if (!this.checkLayerVisibility(rname)) {
 					k++;
 					continue;
@@ -3468,58 +3471,67 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 					this.showWarn(String.format(this.msg("MISSLYRCFG"), rname));
 					return;
 				}		
-				
-				rurl1 = this.lconfig[rname].rasterbaseurl;
-				if (rurl1.endsWith("/")) {
-					sep = "";
-				} else {
-					sep = "/";
-				}
-				rurl2 = rurl1 + sep + "specs.json";
-				
-				lvl = scaleLevelFromScaleValue(sclval);
-				
-				if (this.rasterlayersrequested.indexOf(rasternames[i]) < 0)
-				{
-					this.progressMessage(this.msg("SERVERCONTACTED"));
+
+				rls = this.layerRasterSpecs(rname);
+				if (rls[0] == "WMS") {
+
+					this.rcvctrler.setWMSRasterLayerSpecs(rname, rls[1]);
+					this._checkRefreshDraw(MapCtrlConst.REFRESH_RASTERS, opt_filterdata);
+
+				} else if (rls[0] == "RISCOTILES") {
+
+					if (rls[1].endsWith("/")) {
+						sep = "";
+					} else {
+						sep = "/";
+					}
+					rurl = rls[1] + sep + "specs.json";
 					
-					this.rasterlayersrequested.push(rasternames[i]);
-					this._xhrs.push(ajaxSender(
-						rurl2,
-						(function(p_mapctrller) {
-							return function()
-							{
-								var ulvlidx;
-								if (this.readyState === XMLHttpRequest.DONE)
+					lvl = scaleLevelFromScaleValue(sclval);
+					
+					if (this.rasterlayersrequested.indexOf(rasternames[i]) < 0) {
+
+						this.progressMessage(this.msg("SERVERCONTACTED"));
+						
+						this.rasterlayersrequested.push(rasternames[i]);
+						this._xhrs.push(ajaxSender(
+							rurl,
+							(function(p_mapctrller) {
+								return function()
 								{
-									try
+									var ulvlidx;
+									if (this.readyState === XMLHttpRequest.DONE)
 									{
-										if (this.status == 200 && this.responseText.length > 5)
+										try
 										{
-											respdata = JSON.parse(this.responseText);
-											if (respdata.minlevel !== undefined || respdata.maxlevel !== undefined) 
+											if (this.status == 200 && this.responseText.length > 5)
 											{
-												if (lvl < respdata.minlevel) {
-													ulvlidx = 0;
-												} else {
-													ulvlidx = lvl-respdata.minlevel;
-												}
-												lvldata = respdata.levels[ulvlidx];
-												if (lvldata != null) 
+												respdata = JSON.parse(this.responseText);
+												if (respdata.minlevel !== undefined || respdata.maxlevel !== undefined) 
 												{
-													p_mapctrller.rcvctrler.setRasterLayerSpecs(rname, lvldata, respdata);
+													if (lvl < respdata.minlevel) {
+														ulvlidx = 0;
+													} else {
+														ulvlidx = lvl-respdata.minlevel;
+													}
+													lvldata = respdata.levels[ulvlidx];
+													if (lvldata != null) 
+													{
+														p_mapctrller.rcvctrler.setRasterLayerSpecs(rname, lvldata, respdata);
+													}
+													p_mapctrller._checkRefreshDraw(MapCtrlConst.REFRESH_RASTERS, opt_filterdata);
 												}
-												p_mapctrller._checkRefreshDraw(MapCtrlConst.REFRESH_RASTERS, opt_filterdata);
 											}
+										} catch(e) {
+											console.log(e);
+											var useless = null;
 										}
-									} catch(e) {
-										console.log(e);
-										var useless = null;
 									}
-								}
-							};
-						})(this),
-					null, null, true));
+								};
+							})(this),
+						null, null, true));
+					}
+
 				}
 
 			}			
@@ -3577,6 +3589,9 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			var i = 0;
 			var found = true;
 			while (this.rasterlayersrequested[i] !== undefined && this.rasterlayersrequested[i] != null) {
+
+				console.log(i, this.rasterlayersrequested[i]);
+
 				if (!this.rcvctrler.existRasterLayerSpecs(this.rasterlayersrequested[i])) {
 					found = false;
 					break;
@@ -4246,7 +4261,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		
 	};
 	
-	this._getMapTiles = function(p_rasterlayername, p_baseurl, p_rasterSpecs, p_objforlatevectordrawing, opt_displaylayer) 
+	this._getMapTiles = function(p_rasterlayername, p_baseurl, p_rasterSpecs, p_objforlatevectordrawing) 
 	{
 		var imgurl, terraincoords=[], scrcoords = [];
 		var expandedEnv = this.expandedEnv;
@@ -4285,12 +4300,68 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 				topLeftCoordsFromRowCol(col, row, p_rasterSpecs, terraincoords);	
 				imgurl = String.format("{0}/{1}/{2}/{3}.{4}", p_baseurl, p_rasterSpecs.level, col, row, p_rasterSpecs.outimgext);
 
-				var storedimg = this._storeImage(p_rasterlayername, imgurl, 
+				this._storeImage(p_rasterlayername, imgurl, 
 					terraincoords, [p_rasterSpecs.colwidth, 
 					p_rasterSpecs.rowheight], p_rasterSpecs.level, col, row,
 					p_objforlatevectordrawing);
 			}	
 		}
+	};	
+
+/*	
+	"wmsbaseurl": "http://guia-geovista.cm-porto.net/wms/server/151/tiles",
+	"layers": "IGR2014:Carta_Base_PDM_IGR_2014",
+	"format": "image/jpeg",
+	"transparent": "true",
+	"version": "1.1.1"
+*/	
+	
+	this._getWMSMapTiles = function(p_rasterlayername, p_wmsspecs, p_objforlatevectordrawing) {
+		
+		throw new Error("WMS map tiles not implemented yet");	
+		/*var imgurl, terraincoords=[];
+		var expandedEnv = this.expandedEnv;
+		var _inv = this.callSequence.calling("_getWMSMapTiles", arguments);
+	
+		// elementos do envelope em coordenadas inteiras (coluna e linha)
+		var mincol = Math.floor((expandedEnv.minx - p_rasterSpecs.easting) / 
+					p_rasterSpecs.colwidth);
+		var maxcol = Math.ceil((expandedEnv.maxx - p_rasterSpecs.easting) / 
+					p_rasterSpecs.colwidth);
+		var maxrow = Math.ceil((p_rasterSpecs.topnorthing - expandedEnv.miny) / 
+					p_rasterSpecs.rowheight);
+		var minrow = Math.floor((p_rasterSpecs.topnorthing - expandedEnv.maxy) / 
+					p_rasterSpecs.rowheight);					
+		
+		var cols = maxcol - mincol + 1;
+		var rows = maxrow - minrow + 1;
+		var tiles = cols * rows;
+		
+		this.imagecounters.init(p_rasterlayername, tiles);
+		this.callSequence.addMsg("_getWMSMapTiles", _inv, String.format("minrow: {0}, mincol: {1}, maxrow: {2}, maxcol: {3}",minrow,mincol,maxrow,maxcol));
+		
+		var cnt = 0;
+				
+		for (var col=mincol; col<=maxcol; col++) 
+		{
+			for (var row=minrow; row<=maxrow; row++) 
+			{
+				if (col < 0 || row < 0) {
+					this.imagecounters.decrementRequests(p_rasterlayername);
+					continue;
+				}
+				
+				cnt++;
+				
+				topLeftCoordsFromRowCol(col, row, p_rasterSpecs, terraincoords);	
+				imgurl = String.format("{0}/{1}/{2}/{3}.{4}", p_baseurl, p_rasterSpecs.level, col, row, p_rasterSpecs.outimgext);
+
+				this._storeImage(p_rasterlayername, imgurl, 
+					terraincoords, [p_rasterSpecs.colwidth, 
+					p_rasterSpecs.rowheight], p_rasterSpecs.level, col, row,
+					p_objforlatevectordrawing);
+			}	
+		}*/
 	};	
 	
 	this.checkUndrawnRasters = function() 
