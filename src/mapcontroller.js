@@ -3590,8 +3590,6 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 			var found = true;
 			while (this.rasterlayersrequested[i] !== undefined && this.rasterlayersrequested[i] != null) {
 
-				console.log(i, this.rasterlayersrequested[i]);
-
 				if (!this.rcvctrler.existRasterLayerSpecs(this.rasterlayersrequested[i])) {
 					found = false;
 					break;
