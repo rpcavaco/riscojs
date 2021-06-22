@@ -848,8 +848,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 		return ret;
 	};
 
-	this.getScreenPtFromTerrain = function(p_terrpt_x, p_terrpt_y, out_pt)
-	{
+	this.getScreenPtFromTerrain = function(p_terrpt_x, p_terrpt_y, out_pt) {
 		if (p_terrpt_x === null || typeof p_terrpt_x != 'number') {
 			throw new Error(this.msg("MISSPARM1X")+p_terrpt_x);
 		}
@@ -4052,7 +4051,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 	
 	this.applyRegisteredsOnPanZoom = function()  {
 		let muidx = 0;
-		if (this.onPanZoom[muidx] !== undefined && this.onPanZoom[muidx] != null) {
+		while (muidx < this.onPanZoom.length && this.onPanZoom[muidx] !== undefined && this.onPanZoom[muidx] != null) {
 			this.onPanZoom[muidx](this);
 			muidx++;
 		}
