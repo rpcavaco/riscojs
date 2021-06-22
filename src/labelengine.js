@@ -455,26 +455,33 @@ function MapLabelEngine(p_mapcontroller) {
 	//tendo em conta os limites de escala
 	this.layerHasLabels = function(p_lname) {
 
-		let scl, ret = false, top = MapCtrlConst.MAXSCALE_VALUE, bot = 0;
-		let lblconfig = this.lconfig[p_lname].label;
-		if (this.lnames.indexOf(p_lname) >= 0) 
-		{
-			if (lblconfig !== undefined && lblconfig !== undefined && lblconfig["style"] !== undefined) {
+		let ret = false;
 
-				if (lblconfig.style.scalelimits !== undefined && 
-						lblconfig.style.scalelimits.top != undefined) {
-					top = lblconfig.style.scalelimits.top;
-				}
-				if (lblconfig.style.scalelimits !== undefined && 
-						lblconfig.style.scalelimits.bottom != undefined) {
-					bot = lblconfig.style.scalelimits.bottom;
-				}
-				
-				scl = this.mapcontroller.getScale();
-				if (scl>=bot && scl<=top) {
-					ret = true;
+		if (this.lconfig[p_lname] !== undefined) {
+
+			let scl, top = MapCtrlConst.MAXSCALE_VALUE, bot = 0;
+
+			let lblconfig = this.lconfig[p_lname].label;
+			if (this.lnames.indexOf(p_lname) >= 0) 
+			{
+				if (lblconfig !== undefined && lblconfig !== undefined && lblconfig["style"] !== undefined) {
+
+					if (lblconfig.style.scalelimits !== undefined && 
+							lblconfig.style.scalelimits.top != undefined) {
+						top = lblconfig.style.scalelimits.top;
+					}
+					if (lblconfig.style.scalelimits !== undefined && 
+							lblconfig.style.scalelimits.bottom != undefined) {
+						bot = lblconfig.style.scalelimits.bottom;
+					}
+					
+					scl = this.mapcontroller.getScale();
+					if (scl>=bot && scl<=top) {
+						ret = true;
+					}
 				}
 			}
+
 		}
 		return ret;
 	};
