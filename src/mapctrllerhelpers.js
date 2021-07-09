@@ -191,39 +191,12 @@ function rasterLayerCounters() {
 
 }
 
-function scaleLevelFromScaleValue(p_sclvalue) {
-	var ret;
-	if (p_sclvalue < 200) {
-		ret = 0;
-	} else if (p_sclvalue >= 200 && p_sclvalue < 375) {
-		ret = 1;
-	} else if (p_sclvalue >= 375 && p_sclvalue < 750) {
-		ret = 2;
-	} else if (p_sclvalue >= 750 && p_sclvalue < 1500) {
-		ret = 3;
-	} else if (p_sclvalue >= 1500 && p_sclvalue < 3000) {
-		ret = 4;
-	} else if (p_sclvalue >= 3000 && p_sclvalue < 6000) {
-		ret = 5;
-	} else if (p_sclvalue >= 6000 && p_sclvalue < 12000) {
-		ret = 6;
-	} else if (p_sclvalue >= 12000 && p_sclvalue < 24000) {
-		ret = 7;
-	} else if (p_sclvalue >= 24000 && p_sclvalue < 48000) {
-		ret = 8;
-	} else if (p_sclvalue >= 48000 && p_sclvalue < 126000) {
-		ret = 9;
-	} else if (p_sclvalue >= 252000 && p_sclvalue < 500000) {
-		ret = 10;
-	} else if (p_sclvalue >= 500000 && p_sclvalue < 1000000) {
-		ret = 11;
-	} else if (p_sclvalue >= 1000000 && p_sclvalue < 2000000) {
-		ret = 12;
-	} else {
-		ret = 13;
-	}
-	
-	return ret;
+function resFromScale(p_sclvalue) {
+
+	const sclval = p_sclvalue / 1000.0;
+
+	return sclval * 0.2645;
+
 };
 
 function scaleValueFromTMSZoomLevel(p_zoomlvl) {
@@ -599,7 +572,6 @@ function RetrievalController() {
 	this.setRasterLayerSpecs = function(p_name, p_obj, p_general_obj) {
 		this._rasterlayersspecs[p_name] = clone(p_obj);
 		this._rasterlayersspecs[p_name].outimgext = p_general_obj.outimgext;
-		this._rasterlayersspecs[p_name].pixsize = p_general_obj.pixsize;
 		this._rasterlayersspecs[p_name].topnorthing = p_general_obj.topnorthing;
 		this._rasterlayersspecs[p_name].easting = p_general_obj.easting;
 		this._rasterlayersspecs[p_name].level = p_obj.level;

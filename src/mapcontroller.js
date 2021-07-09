@@ -3486,8 +3486,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 					}
 					rurl = rls[1] + sep + "specs.json";
 					
-					lvl = scaleLevelFromScaleValue(sclval);
-					
+					res = resFromScale(sclval);					
 					if (this.rasterlayersrequested.indexOf(rasternames[i]) < 0) {
 
 						this.progressMessage(this.msg("SERVERCONTACTED"));
@@ -3498,7 +3497,7 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 							(function(p_mapctrller) {
 								return function()
 								{
-									var ulvlidx;
+									let ulvlidx, diff, mindiff = 99999999, minli = 0;
 									if (this.readyState === XMLHttpRequest.DONE)
 									{
 										try
@@ -3508,12 +3507,18 @@ function MapController(p_elemid, po_initconfig, p_debug_callsequence) {
 												respdata = JSON.parse(this.responseText);
 												if (respdata.minlevel !== undefined || respdata.maxlevel !== undefined) 
 												{
-													if (lvl < respdata.minlevel) {
-														ulvlidx = 0;
-													} else {
-														ulvlidx = lvl-respdata.minlevel;
+													for (let li = 0; li < 40; li++) {
+														if (respdata.levels[li] === undefined) {
+															break;
+														}
+														lvldata = respdata.levels[li];
+														diff = Math.abs(lvldata["resolution"] - res);
+														if (diff < mindiff) {
+															minli = li;
+															mindiff = diff;
+														}
 													}
-													lvldata = respdata.levels[ulvlidx];
+													lvldata = respdata.levels[minli];
 													if (lvldata != null) 
 													{
 														p_mapctrller.rcvctrler.setRasterLayerSpecs(rname, lvldata, respdata);
