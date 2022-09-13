@@ -455,9 +455,11 @@ function CanvasController(p_elemid, p_mapcontroller, opt_basezindex) {
 	    this.activeDisplayLayer = p_displayer;		
 	};
 
+	/*
 	this.getImageData = function(p_x, p_y, p_ctxw, p_ctxh, p_displayer) {
-		return this._ctxdict[layer].getImageData(p_x, p_y, p_ctxw, p_ctxh);
+		return this._ctxdict[p_displayer].getImageData(p_x, p_y, p_ctxw, p_ctxh);
 	};
+	*/
 	
 	this.getCtx = function(p_displayer) {		
 		var layer;
