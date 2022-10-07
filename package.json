@@ -1,0 +1,28 @@
+{
+  "name": "riscojs",
+  "version": "1.0.0",
+  "description": "Webmap client library",
+  "main": "riscomain.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rpcavaco/riscojs.git"
+  },
+  "keywords": [
+    "webmap",
+    "gis"
+  ],
+  "author": "Rui Cavaco Barrosa",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rpcavaco/riscojs/issues"
+  },
+  "homepage": "https://github.com/rpcavaco/riscojs#readme",
+  "devDependencies": {
+    "eslint": "^8.21.0",
+    "prettier": "^2.7.1",
+    "rollup": "^2.77.3"
+  }
+}
