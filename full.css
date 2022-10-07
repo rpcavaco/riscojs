@@ -1,0 +1,13 @@
+body {
+	margin: 0;
+	padding: 0;	
+}
+
+#viewDiv {
+	width: 100%;
+	height: 100vh;
+	background-color: cadetblue;
+	margin: 0;
+	padding: 0;
+	background-image: url('data:image/svg+xml;utf8,<svg%20width="90mm"%20height="90mm"%20xmlns="http://www.w3.org/2000/svg"><g><text%20transform="rotate(-45%20324.7626037597656,238.86323547363284)"%20font-weight="bold"%20text-anchor="middle"%20font-family="Sans-serif"%20font-size="32"%20y="10"%20x="300"%20stroke="black"%20fill="%233b3b3b">Fundo do mapa</text></g></svg>');	
+}

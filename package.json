@@ -21,7 +21,7 @@
   },
   "homepage": "https://github.com/rpcavaco/riscojs#readme",
   "devDependencies": {
-    "eslint": "^8.21.0",
+    "eslint": "^8.24.0",
     "prettier": "^2.7.1",
     "rollup": "^2.77.3"
   }
